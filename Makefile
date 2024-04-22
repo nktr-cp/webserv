@@ -3,14 +3,14 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: misargsy <misargsy@student.42.fr>          +#+  +:+       +#+         #
+#    By: knishiok <knishiok@student.42.jp>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/09 19:08:43 by misargsy          #+#    #+#              #
-#    Updated: 2024/04/22 21:40:17 by misargsy         ###   ########.fr        #
+#    Updated: 2024/04/22 21:44:41 by knishiok         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iincludes #-fsanitize=address,undefined
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude #-fsanitize=address,undefined
 CXX = c++
 
 NAME = webserv
@@ -32,9 +32,12 @@ OBJSDIR = obj
 ##############################################################################
 MAIN =		main.cpp
 # MAIN :=		$(addprefix main/, $(MAIN))
+
+CONFIG =	Config.cpp
+CONFIG :=	$(addprefix Config/, $(CONFIG))
 ##############################################################################
 
-SRCS =	$(MAIN)
+SRCS =	$(MAIN) $(CONFIG)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
