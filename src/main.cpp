@@ -1,7 +1,15 @@
-#include <iostream>
-using namespace std;
+#include "Config.hpp"
 
-int main() {
-	cout << "Hello, World!" << endl;
-	return 0;
+signed main(int argc, char **argv) {
+	if (argc != 2) {
+		std::cerr << "Usage: ./webserv <filename>" << std::endl;
+		return 1;
+	}
+
+	try {
+		Config config(argv[1]);
+	} catch (std::exception &e) {
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
 }
