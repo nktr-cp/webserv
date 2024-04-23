@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: knishiok <knishiok@student.42.jp>          +#+  +:+       +#+         #
+#    By: misargsy <misargsy@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/09 19:08:43 by misargsy          #+#    #+#              #
-#    Updated: 2024/04/22 21:44:41 by knishiok         ###   ########.fr        #
+#    Updated: 2024/04/23 21:42:27 by misargsy         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,11 +33,15 @@ OBJSDIR = obj
 MAIN =		main.cpp
 # MAIN :=		$(addprefix main/, $(MAIN))
 
-CONFIG =	Config.cpp
+UTIL =		Utils.cpp
+UTIL :=		$(addprefix Util/, $(UTIL))
+
+CONFIG =	Config.cpp \
+			Parse.cpp
 CONFIG :=	$(addprefix Config/, $(CONFIG))
 ##############################################################################
 
-SRCS =	$(MAIN) $(CONFIG)
+SRCS =	$(MAIN) $(UTIL) $(CONFIG)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
@@ -45,13 +49,13 @@ all: $(NAME)
 
 $(NAME): $(OBJS)
 	@printf "$(YELLOW)Compiling $@... $(CONVERSION)$(RESET)"
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
 	@printf "$(GREEN)⪼ $(NAME): compilation done ⪻$(CONVERSION)$(RESET)\n"
 
 $(OBJSDIR)/%.o: $(SRCSDIR)/%.cpp
 	@mkdir -p $(OBJSDIR) $(dir $@)
 	@printf "$(MAGENTA)Compiling $@... $(CONVERSION)$(RESET)"
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	@$(RM) -r $(OBJSDIR)

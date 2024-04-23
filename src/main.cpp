@@ -13,3 +13,9 @@ signed main(int argc, char **argv) {
 		return 1;
 	}
 }
+
+__attribute__((destructor))
+static void	leaks(void)
+{
+	system("leaks -q webserv");
+}
