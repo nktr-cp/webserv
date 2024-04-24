@@ -1,7 +1,7 @@
 #ifndef TYPEDEFS_HPP
 #define TYPEDEFS_HPP
 
-typedef enum : short {
+enum : short {
 	CONTINUE = 100,
 	SWITCHING_PROTOCOLS = 101,
 	PROCESSING = 102,
@@ -56,12 +56,16 @@ typedef enum : short {
 	INSUFFICIENT_STORAGE = 507,
 	LOOP_DETECTED = 508,
 	NOT_EXTENDED = 510,
-} StatusCode;
+};
 
-typedef enum : short{
+typedef short statuscode;
+
+enum : short{
 	GET = 0,
 	POST = 1,
 	DELETE = 2
-} HttpMethod;
+};
+
+typedef short httpmethod;
 
 #endif
