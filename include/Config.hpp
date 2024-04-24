@@ -5,7 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
+#include "Server.hpp"
 #include "Util.hpp"
 
 #define WIHTESPACE " \t\n"
@@ -16,9 +18,12 @@
 class Config {
 	private:
 		std::string content_;
+		std::vector<Server> servers_;
 
 	public:
 		Config(const std::string& filename);
+
+		// parse
 		void parse();
 		void parseServer();
 		void parseLocation();
@@ -34,6 +39,11 @@ class Config {
 		void parseMethods();
 		void parseExtension();
 		void parseReturn();
+
+		// server method
+		void create_sockets();
+		// void prepare_monitor();
+		void close_sockets();
 };
 
 #endif // CONFIG_HPP_
