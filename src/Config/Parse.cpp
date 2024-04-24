@@ -10,12 +10,12 @@ static std::string tokenize(std::string& content) {
 	start = pos;
 	if (content[pos] == '\0')
 		return "";
-	if (strchr(SPECCHARS, content[pos]))
+	if (strchr(SPECIAL_LETTERS, content[pos]))
 	{
 		pos++;
 		return content.substr(start, 1);
 	}
-	while (content[pos] && !strchr(WIHTESPACE, content[pos]) && !strchr(SPECCHARS, content[pos]))
+	while (content[pos] && !strchr(WIHTESPACE, content[pos]) && !strchr(SPECIAL_LETTERS, content[pos]))
 		pos++;
 	end = pos;
 	return content.substr(start, end - start);
@@ -31,7 +31,7 @@ void Config::parse() {
 		if (token == "server")
 			this->parseServer();
 		else
-			throw std::runtime_error(EM_CONFIG);
+			throw SyntaxError(token);
 	}
 }
 
@@ -40,7 +40,7 @@ void Config::parseServer() {
 
 	token = tokenize(this->content_);
 	if (token != "{")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	while (true) {
 		token = tokenize(this->content_);
 		if (token == "listen")
@@ -57,7 +57,7 @@ void Config::parseServer() {
 			break;
 	}
 	if (token != "}")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseLocation() {
@@ -65,11 +65,11 @@ void Config::parseLocation() {
 
 	token = tokenize(this->content_);
 	if (token[0] != '/' || token[token.size() - 1] != '/')
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	std::cout << "Location: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != "{")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	while (true) {
 		token = tokenize(this->content_);
 		if (token == "root")
@@ -92,7 +92,7 @@ void Config::parseLocation() {
 			break;
 	}
 	if (token != "}")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseListen() {
@@ -103,13 +103,13 @@ void Config::parseListen() {
 	if (isNumber(token))
 		port = std::stoi(token);
 	else
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	if (port < 0 || port > 65535)
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	std::cout << "Port: " << port << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseRoot() {
@@ -119,7 +119,7 @@ void Config::parseRoot() {
 	std::cout << "Root: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseHost() {
@@ -129,7 +129,7 @@ void Config::parseHost() {
 	std::cout << "Host: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseServerName() {
@@ -139,7 +139,7 @@ void Config::parseServerName() {
 	std::cout << "Server name: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseError() {
@@ -149,7 +149,7 @@ void Config::parseError() {
 	std::cout << "Error: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseMaxBody() {
@@ -160,13 +160,13 @@ void Config::parseMaxBody() {
 	if (isNumber(token))
 		max_body = std::stoi(token);
 	else
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	if (max_body < 0)
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	std::cout << "Max body: " << max_body << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseIndex() {
@@ -176,7 +176,7 @@ void Config::parseIndex() {
 	std::cout << "Index: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseAutoIndex() {
@@ -188,10 +188,10 @@ void Config::parseAutoIndex() {
 	else if (token == "off")
 		std::cout << "Autoindex: off" << std::endl;
 	else
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseDirList() {
@@ -203,10 +203,10 @@ void Config::parseDirList() {
 	else if (token == "off")
 		std::cout << "Dir list: off" << std::endl;
 	else
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseMethods() {
@@ -223,7 +223,7 @@ void Config::parseMethods() {
 		else if (token == "DELETE")
 			std::cout << "Method: DELETE" << std::endl;
 		else
-			throw std::runtime_error(EM_CONFIG);
+			throw SyntaxError(token);
 	}
 }
 
@@ -234,7 +234,7 @@ void Config::parseExtension() {
 	std::cout << "Extension: " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
 
 void Config::parseReturn() {
@@ -245,13 +245,13 @@ void Config::parseReturn() {
 	if (isNumber(token))
 		code = std::stoi(token);
 	else
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	if (code < 100 || code > 599)
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 	std::cout << "Code: " << code << ", ";
 	token = tokenize(this->content_);
 	std::cout << "Return to " << token << std::endl;
 	token = tokenize(this->content_);
 	if (token != ";")
-		throw std::runtime_error(EM_CONFIG);
+		throw SyntaxError(token);
 }
