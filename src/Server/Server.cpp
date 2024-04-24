@@ -27,6 +27,10 @@ const std::string& Server::getPort() const {
 	return this->port_;
 }
 
+const int& Server::getSockfd() const {
+	return this->sockfd_;
+}
+
 void Server::create_socket() {
 	// hint: ネットワークアドレスを解消するための参考情報をもつ
 	// address: 返り値となる、完全なaddrinfo構造体

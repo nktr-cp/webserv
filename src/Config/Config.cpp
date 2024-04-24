@@ -25,3 +25,25 @@ Config::Config(const std::string& filename) {
 	this->parse();
 }
 
+void Config::create_sockets() {
+	for (size_t i=0; i<servers_.size(); i++) {
+		this->servers_[i].create_socket();
+	}
+}
+
+// この処理を行うには、クライアントが必須
+// void Config::prepare_monitor() {
+// 	fd_set reads, writes;
+// 	// fd_setのクリア
+// 	FD_ZERO(&reads); FD_ZERO(&writes);
+
+// 	for (size_t i=0; i<servers_.size(); i++) {
+
+// 	}
+// }
+
+void Config::close_sockets() {
+	for (size_t i=0; i<servers_.size(); i++) {
+		close(this->servers_[i].getSockfd());
+	}
+}
