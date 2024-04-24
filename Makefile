@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: misargsy <misargsy@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/02/09 19:08:43 by misargsy          #+#    #+#              #
-#    Updated: 2024/04/23 21:42:27 by misargsy         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude #-fsanitize=address,undefined
 CXX = c++
 
@@ -39,9 +27,12 @@ UTIL :=		$(addprefix Util/, $(UTIL))
 CONFIG =	Config.cpp \
 			Parse.cpp
 CONFIG :=	$(addprefix Config/, $(CONFIG))
+
+SERVER = Server.cpp
+SERVER := $(addprefix Server/, $(SERVER))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTIL) $(CONFIG)
+SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
