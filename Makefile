@@ -6,7 +6,7 @@
 #    By: misargsy <misargsy@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/02/09 19:08:43 by misargsy          #+#    #+#              #
-#    Updated: 2024/04/23 21:42:27 by misargsy         ###   ########.fr        #
+#    Updated: 2024/04/24 20:40:44 by misargsy         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,7 +33,8 @@ OBJSDIR = obj
 MAIN =		main.cpp
 # MAIN :=		$(addprefix main/, $(MAIN))
 
-UTIL =		Utils.cpp
+UTIL =		Utils.cpp \
+			Errors.cpp
 UTIL :=		$(addprefix Util/, $(UTIL))
 
 CONFIG =	Config.cpp \

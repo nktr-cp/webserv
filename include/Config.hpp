@@ -6,12 +6,11 @@
 #include <sstream>
 #include <string>
 
-#include "Util.hpp"
+#include "Utils.hpp"
+#include "Errors.hpp"
 
 #define WIHTESPACE " \t\n"
-#define SPECCHARS "{};"
-
-#define EM_CONFIG "Invalid configuration file"
+#define SPECIAL_LETTERS "{};"
 
 class Config {
 	private:
