@@ -8,23 +8,26 @@
 
 #include "Utils.hpp"
 #include "Errors.hpp"
+#include "Server.hpp"
 
 #define WIHTESPACE " \t\n"
 #define SPECIAL_LETTERS "{};"
 
+#define MAX_BODY_SIZE 1000000
+
 class Config {
 	private:
 		std::string content_;
+		std::vector<Server> servers_;
 
 	public:
 		Config(const std::string& filename);
 		void parse();
 		void parseServer();
-		void parseLocation();
-		void parseListen();
+		void parseLocation(Server *server);
+		void parseListen(Server *server);
 		void parseRoot();
-		void parseHost();
-		void parseServerName();
+		void parseHost(Server *server);
 		void parseError();
 		void parseMaxBody();
 		void parseIndex();
@@ -33,6 +36,9 @@ class Config {
 		void parseMethods();
 		void parseExtension();
 		void parseReturn();
+
+		//debug
+		void printServers();
 };
 
 #endif // CONFIG_HPP_

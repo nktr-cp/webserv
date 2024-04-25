@@ -18,5 +18,15 @@ Config::Config(const std::string& filename) {
 		}
 	}
 	this->parse();
+	//debug
+	std::printf("\n\n=====================\n\n");
+	this->printServers();
+}
+
+void Config::printServers() {
+	for (size_t i = 0; i < this->servers_.size(); i++) {
+		std::cout << "=====================" << std::endl << "Server " << i + 1 << ":" << std::endl;
+		this->servers_[i].print();
+	}
 }
 

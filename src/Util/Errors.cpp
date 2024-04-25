@@ -2,14 +2,36 @@
 
 ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {}
 
-std::string SyntaxError::ErrMrgWrapper(const std::string& token) {
-	return SYNTAX_ERROR + std::string("`") + token + std::string("'");
+const std::string ExtraErrors::ProgramNamePrefix = "webserv: ";
+
+SyntaxError::SyntaxError(const std::string& token) : ExtraErrors(ErrMsgWrapper(token)) {}
+
+const std::string SyntaxError::ErrorMessage = "syntax error near unexpected token ";
+
+std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
+	return this->ProgramNamePrefix + this->ErrorMessage + std::string("`") + token + std::string("'");
 }
 
-SyntaxError::SyntaxError(const std::string& token) : ExtraErrors(ErrMrgWrapper(token)) {}
+SysCallFailed::SysCallFailed(void) : ExtraErrors(ErrMsgWrapper(strerror(errno))) {}
 
-std::string SysCallFailed::ErrMrgWrapper(const std::string& msg) {
-	return PROGRAM_NAME_PREFIX + msg;
+const std::string SysCallFailed::ErrorMessage = ": system call failed";
+
+std::string SysCallFailed::ErrMsgWrapper(const std::string& arg) {
+	return this->ProgramNamePrefix + arg + this->ErrorMessage;
 }
 
-SysCallFailed::SysCallFailed(void) : ExtraErrors(ErrMrgWrapper(strerror(errno))) {}
+ArgOutOfRange::ArgOutOfRange(const std::string& arg) : ExtraErrors(ErrMsgWrapper(arg)) {}
+
+const std::string ArgOutOfRange::ErrorMessage = ": argument out of range";
+
+std::string ArgOutOfRange::ErrMsgWrapper(const std::string& arg) {
+	return this->ProgramNamePrefix + arg + this->ErrorMessage;
+}
+
+InvalidArgument::InvalidArgument(const std::string& arg) : ExtraErrors(ErrMsgWrapper(arg)) {}
+
+const std::string InvalidArgument::ErrorMessage = ": invalid argument";
+
+std::string InvalidArgument::ErrMsgWrapper(const std::string& arg) {
+	return this->ProgramNamePrefix + arg + this->ErrorMessage;
+}

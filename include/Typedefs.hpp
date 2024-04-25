@@ -1,7 +1,7 @@
 #ifndef TYPEDEFS_HPP
 #define TYPEDEFS_HPP
 
-enum : short {
+enum class HttpStatus : short {
 	CONTINUE = 100,
 	SWITCHING_PROTOCOLS = 101,
 	PROCESSING = 102,
@@ -58,14 +58,10 @@ enum : short {
 	NOT_EXTENDED = 510,
 };
 
-typedef short statuscode;
-
-enum : short{
-	GET = 0,
-	POST = 1,
-	DELETE = 2
+enum class HttpMethod : short {
+	GET,
+	POST,
+	DELETE
 };
-
-typedef short httpmethod;
 
 #endif
