@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Server.hpp"
+#include "Client.hpp"
 #include "Util.hpp"
 
 #define WIHTESPACE " \t\n"
@@ -18,7 +19,10 @@
 class Config {
 	private:
 		std::string content_;
+
+		fd_set readfds_, writefds_;
 		std::vector<Server> servers_;
+		std::vector<Client> clients_;
 
 	public:
 		Config(const std::string& filename);
@@ -42,7 +46,8 @@ class Config {
 
 		// server method
 		void create_sockets();
-		// void prepare_monitor();
+		void prepare_monitor();
+		void event_loop();
 		void close_sockets();
 };
 
