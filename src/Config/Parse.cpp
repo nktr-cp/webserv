@@ -147,11 +147,10 @@ void Config::parseHost(Server *server) {
 
 void Config::parsePortNumber(Server *server) {
 	std::string token;
-	int port = 0;
 
 	token = tokenize(this->content_);
 	try {
-		port = ft::stoui(token, (unsigned int[2]){0, 65535});
+		ft::stoui(token, (unsigned int[2]){0, 65535});
 	} catch (std::invalid_argument& e) {
 		throw InvalidArgument(token);
 	} catch (std::out_of_range& e) {
@@ -229,9 +228,12 @@ void Config::parseIndex(Location *location) {
 void Config::parseExtensions(Location *location) {
 	std::string token;
 
-	token = tokenize(this->content_);
-	location->addExtension(token);
-	token = tokenize(this->content_);
+	while (true) {
+		token = tokenize(this->content_);
+		if (token == ";" || token.empty())
+			break;
+		location->addExtension(token);
+	}
 	if (token != ";")
 		throw SyntaxError(token);
 }
