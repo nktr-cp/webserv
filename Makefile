@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude #-fsanitize=address,undefined
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 CXX = c++
 
 NAME = webserv
@@ -29,7 +29,8 @@ CONFIG =	Config.cpp \
 			Parse.cpp
 CONFIG :=	$(addprefix Config/, $(CONFIG))
 
-SERVER = Server.cpp
+SERVER =	Server.cpp \
+			Location.cpp
 SERVER := $(addprefix Server/, $(SERVER))
 ##############################################################################
 
