@@ -3,7 +3,7 @@
 const unsigned int Server::backlog_ = 10;
 
 Server::Server()
-: host_(""),
+:	host_(""),
 	port_(""),
 	locations_(std::vector<Location>()) {}
 
@@ -13,6 +13,10 @@ void Server::setHost(const std::string& host) {
 
 void Server::setPort(const std::string& port) {
 	this->port_ = port;
+}
+
+void Server::setServerName(const std::string& server_name) {
+	this->server_name_ = server_name;
 }
 
 void Server::addLocation(const Location& location) {
@@ -76,6 +80,17 @@ void Server::create_socket() {
 
 	// クライアントからの接続要求待ちにする
 	if (listen(sockfd_, Server::backlog_) == -1) {
-		// throw ... # 適当な例外処理を投げるようにする
+		throw SysCallFailed();
 	}
+}
+
+//debug
+#include <iostream>
+void Server::print() {
+	std::cout << "host: " << host_ << std::endl;
+	std::cout << "port: " << port_ << std::endl;
+	std::cout << "locations: " << std::endl;
+	// for (std::vector<Location>::iterator it = locations_.begin(); it != locations_.end(); it++) {
+	// 	it->print();
+	// }
 }

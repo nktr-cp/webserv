@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 
-bool	isNumber(const std::string& str);
+namespace ft {
+	bool			isNumber(const std::string& str);
+	unsigned int	stoui(const std::string& str, const unsigned int range[2]);
+}
 
 #endif
