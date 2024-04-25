@@ -5,7 +5,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <sys/event.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
