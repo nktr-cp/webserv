@@ -100,13 +100,13 @@ void Config::event_loop() {
 		if (FD_ISSET(sockfd, &readfds_)) {
 			clients_.push_back(Client(servers_[i]));
 			Client& client = clients_.back();
-			/***********************************
+			/*********************************************************************
 			 int accept(int socket, struct sockaddr *restrict address,
        	  socklen_t *restrict address_len);
 				保留状態の接続要求が入っているキューから先頭の接続要求を取り出し、
 				接続済みソケットを新規に作成し、そのソケットを参照する新しいファイルディスクリプタを返す
 				ここではこれをclientのsocketとして設定する
-			************************************/
+			**********************************************************************/
 			struct sockaddr address;
 			socklen_t address_len = sizeof(struct sockaddr_storage);
 			int cl_sockfd = accept(servers_[i].getSockfd(), &address, &address_len);
