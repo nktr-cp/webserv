@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-static const int MAX_REQUEST_ENTITY_ = 4096;
+// static const int MAX_REQUEST_ENTITY_ = 4096;
 
 Client::Client() {}
 

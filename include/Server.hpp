@@ -12,20 +12,17 @@
 #include <map>
 
 #include "Location.hpp"
-#include "Errors.hpp"
+#include "Typedefs.hpp"
 
 class Server {
 	private:
 		//parsed
+		std::map<HttpStatus, std::string> errors_;
+		std::vector<Location> locations_;
 		std::string host_;
 		std::string port_;
-		std::vector<Location> locations_;
 		std::string server_name_;
-		std::string root_;
-		std::string index_;
-		std::map<int, std::string> errors_;
-		bool autoindex_;
-		int max_body_size_;
+		int	max_body_size_;
 
 		//utils
 		int sockfd_;
@@ -39,16 +36,16 @@ class Server {
 		void setHost(const std::string&);
 		void setPort(const std::string&);
 		void setServerName(const std::string&);
-		void setRoot(const std::string&);
-		void setIndex(const std::string&);
-		void setAutoIndex(bool);
+		void setMaxBodySize(int);
 
 		void addError(int, const std::string&);
 		void addLocation(const Location&);
 
-		const std::string& getHost() const;
-		const std::string& getPort() const;
+		const std::string&	getHost() const;
+		const std::string&	getPort() const;
 		const int& getSockfd() const;
+		const std::string&	getServerName() const;
+		int					getMaxBodySize() const;
 
 		// server method
 		void create_socket();

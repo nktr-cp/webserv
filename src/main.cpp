@@ -17,8 +17,8 @@ signed main(int argc, char **argv) {
 	}
 }
 
-__attribute__((destructor))
-static void	leaks(void)
-{
-	system("leaks -q webserv");
-}
+// __attribute__((destructor))
+// static void	leaks(void)
+// {
+// 	system("leaks -q webserv");
+// }

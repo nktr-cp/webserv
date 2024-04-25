@@ -19,7 +19,6 @@ Config::Config(const std::string& filename) {
 	}
 	this->parse();
 	//debug
-	std::printf("\n\n=====================\n\n");
 	this->printServers();
 }
 

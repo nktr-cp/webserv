@@ -2,10 +2,11 @@
 
 const unsigned int Server::BACKLOG_ = 10;
 
-Server::Server()
-:	host_(""),
+Server::Server():
+	host_(""),
 	port_(""),
-	locations_(std::vector<Location>()) {}
+	server_name_(""),
+	max_body_size_(MAX_BODY_SIZE) {}
 
 void Server::setHost(const std::string& host) {
 	this->host_ = host;
@@ -19,8 +20,16 @@ void Server::setServerName(const std::string& server_name) {
 	this->server_name_ = server_name;
 }
 
+void Server::setMaxBodySize(int max_body_size) {
+	this->max_body_size_ = max_body_size;
+}
+
 void Server::addLocation(const Location& location) {
 	this->locations_.push_back(location);
+}
+
+void Server::addError(int status, const std::string& path) {
+	this->errors_.insert(std::pair<HttpStatus, std::string>(static_cast<HttpStatus>(status), path));
 }
 
 const std::string& Server::getHost() const {
@@ -29,6 +38,14 @@ const std::string& Server::getHost() const {
 
 const std::string& Server::getPort() const {
 	return this->port_;
+}
+
+const std::string& Server::getServerName() const {
+	return this->server_name_;
+}
+
+int Server::getMaxBodySize() const {
+	return this->max_body_size_;
 }
 
 const int& Server::getSockfd() const {
@@ -93,8 +110,15 @@ void Server::create_socket() {
 void Server::print() {
 	std::cout << "host: " << host_ << std::endl;
 	std::cout << "port: " << port_ << std::endl;
+	std::cout << "server_name: " << server_name_ << std::endl;
+	std::cout << "max_body_size: " << max_body_size_ << std::endl;
+	std::cout << "errors: " << std::endl;
+	for (std::map<HttpStatus, std::string>::iterator it = errors_.begin(); it != errors_.end(); it++) {
+		std::cout << it->first << " " << it->second << std::endl;
+	}
 	std::cout << "locations: " << std::endl;
-	// for (std::vector<Location>::iterator it = locations_.begin(); it != locations_.end(); it++) {
-	// 	it->print();
-	// }
+	for (std::vector<Location>::iterator it = locations_.begin(); it != locations_.end(); it++) {
+		std::cout << "-----------------------" << std::endl;
+		it->print();
+	}
 }
