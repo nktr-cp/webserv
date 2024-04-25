@@ -1,7 +1,16 @@
 #ifndef TYPEDEFS_HPP
 #define TYPEDEFS_HPP
 
-enum class HttpStatus : short {
+#define MAX_BODY_SIZE 1000000
+
+#include "Utils.hpp"
+#include "Errors.hpp"
+#include <vector>
+
+typedef short HttpStatus;
+typedef short HttpMethod;
+
+enum : HttpStatus {
 	CONTINUE = 100,
 	SWITCHING_PROTOCOLS = 101,
 	PROCESSING = 102,
@@ -58,10 +67,10 @@ enum class HttpStatus : short {
 	NOT_EXTENDED = 510,
 };
 
-enum class HttpMethod : short {
-	GET,
-	POST,
-	DELETE
+enum : HttpMethod {
+	GET = 1,
+	POST = 2,
+	DELETE = 4
 };
 
 #endif
