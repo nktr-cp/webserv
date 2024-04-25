@@ -30,13 +30,7 @@ void Config::printServers() {
 	}
 }
 
-void Config::create_sockets() {
-	for (size_t i=0; i<servers_.size(); i++) {
-		this->servers_[i].create_socket();
-	}
-}
-
-void Config::prepare_monitor() {
+void Config::set_select() {
 	/***************************************************************
 	// kqueue
 	int kq = kqueue();
@@ -91,15 +85,15 @@ void Config::prepare_monitor() {
 	timeout引数にNULLを渡した時は、readyがなければ即時returnする->上の状況と同じ
 	********************************************************************/
 	int result = 0;
-	if (result = select(nfds, &readfds_, &writefds_, NULL, NULL) == -1) {
-		// throw # 適当なエラーを返す
+	if ((result = select(nfds, &readfds_, &writefds_, NULL, NULL)) == -1) {
+		throw SysCallFailed();
 	} else if (result == 0) {
 		// selectがtimeoutした時
 		// TODO
 	}
 }
 
-void Config::event_loop() {
+void Config::accept_sockets() {
 	for (size_t i=0; i<servers_.size(); ++i) {
 		int sockfd = servers_[i].getSockfd();
 		if (FD_ISSET(sockfd, &readfds_)) {
@@ -115,11 +109,30 @@ void Config::event_loop() {
 			struct sockaddr address;
 			socklen_t address_len = sizeof(struct sockaddr_storage);
 			int cl_sockfd = accept(servers_[i].getSockfd(), &address, &address_len);
-			if (cl_sockfd) {
-				// throw # 適当なエラー
+			if (cl_sockfd == -1) {
+				throw SysCallFailed();
 			}
 			client.setSockfd(cl_sockfd);
 		}
+	}
+}
+
+void Config::get_request() {
+	for (size_t i=0; i<clients_.size(); i++) {
+		if (FD_ISSET(clients_[i].getSockfd(), &readfds_)) {
+			
+		}
+	}
+}
+
+void Config::event_loop() {
+	this->set_select();
+	this->accept_sockets();
+}
+
+void Config::create_sockets() {
+	for (size_t i=0; i<servers_.size(); i++) {
+		this->servers_[i].create_socket();
 	}
 }
 

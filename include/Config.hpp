@@ -20,7 +20,6 @@
 class Config {
 	private:
 		std::string content_;
-		std::vector<Server> servers_;
 
 		fd_set readfds_, writefds_;
 		std::vector<Server> servers_;
@@ -46,9 +45,11 @@ class Config {
 		void parseReturn();
 
 		// server method
-		void create_sockets();
-		void prepare_monitor();
+		void set_select();
+		void accept_sockets();
+		void get_request();
 		void event_loop();
+		void create_sockets();
 		void close_sockets();
 
 		//debug

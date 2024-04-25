@@ -6,6 +6,7 @@
 
 class Client {
 	private:
+		static const int MAX_REQUEST_ENTITY_;
 		int sockfd_;
 		const Server* server_ptr_;
 
