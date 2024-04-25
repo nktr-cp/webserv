@@ -9,16 +9,18 @@
 
 #include "Server.hpp"
 #include "Client.hpp"
-#include "Util.hpp"
+#include "Utils.hpp"
+#include "Errors.hpp"
 
 #define WIHTESPACE " \t\n"
-#define SPECCHARS "{};"
+#define SPECIAL_LETTERS "{};"
 
-#define EM_CONFIG "Invalid configuration file"
+#define MAX_BODY_SIZE 1000000
 
 class Config {
 	private:
 		std::string content_;
+		std::vector<Server> servers_;
 
 		fd_set readfds_, writefds_;
 		std::vector<Server> servers_;
@@ -30,11 +32,10 @@ class Config {
 		// parse
 		void parse();
 		void parseServer();
-		void parseLocation();
-		void parseListen();
+		void parseLocation(Server *server);
+		void parseListen(Server *server);
 		void parseRoot();
-		void parseHost();
-		void parseServerName();
+		void parseHost(Server *server);
 		void parseError();
 		void parseMaxBody();
 		void parseIndex();
@@ -49,6 +50,9 @@ class Config {
 		void prepare_monitor();
 		void event_loop();
 		void close_sockets();
+
+		//debug
+		void printServers();
 };
 
 #endif // CONFIG_HPP_

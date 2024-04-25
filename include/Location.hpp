@@ -8,6 +8,8 @@ class Location {
 
 	public:
 		// setter, getter
+		//debug
+		void print();
 };
 
 #endif // LOCATION_HPP_
