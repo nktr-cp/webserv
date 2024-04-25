@@ -29,7 +29,7 @@ class Server {
 
 		//utils
 		int sockfd_;
-		static const unsigned int backlog_;
+		static const unsigned int BACKLOG_;
 
 	public:
 		// constructor, destructor
