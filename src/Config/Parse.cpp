@@ -5,17 +5,17 @@ static std::string tokenize(std::string& content) {
 	size_t start = pos;
 	size_t end = 0;
 
-	while (content[pos] && strchr(WIHTESPACE, content[pos]))
+	while (content[pos] && std::isspace(content[pos]) != 0)
 		pos++;
 	start = pos;
 	if (content[pos] == '\0')
 		return "";
-	if (strchr(SPECIAL_LETTERS, content[pos]))
+	if (strchr(SPECIAL_LETTERS, content[pos]) != NULL)
 	{
 		pos++;
 		return content.substr(start, 1);
 	}
-	while (content[pos] && !strchr(WIHTESPACE, content[pos]) && !strchr(SPECIAL_LETTERS, content[pos]))
+	while (content[pos] && (std::isspace(content[pos]) == 0) && strchr(SPECIAL_LETTERS, content[pos]) == NULL)
 		pos++;
 	end = pos;
 	return content.substr(start, end - start);
@@ -71,6 +71,7 @@ void Config::parseLocation(Server *server) {
 	token = tokenize(this->content_);
 	if (token[0] != '/' || token[token.size() - 1] != '/')
 		throw SyntaxError(token);
+	location.setUri(token);
 	token = tokenize(this->content_);
 	if (token != "{")
 		throw SyntaxError(token);

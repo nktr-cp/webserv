@@ -72,6 +72,14 @@ class ArgOutOfRange : public ExtraErrors {
 		std::string ErrMsgWrapper(const std::string& arg);
 };
 
+/*
+** InvalidArgument class is a derived class of ExtraErrors.
+** It is used to throw an exception when an argument is invalid.
+** The constructor of InvalidArgument takes a string as an argument and passes it to the ExtraErrors constructor.
+** The ErrorMessage is a constant string that is used to format the error message.
+** The ErrMsgWrapper method is used to format the error message.
+** Example error message: "webserv: arg: invalid argument"
+*/
 class InvalidArgument : public ExtraErrors {
 	public:
 		InvalidArgument(const std::string& arg);

@@ -9,7 +9,6 @@
 #include "Server.hpp"
 #include "Typedefs.hpp"
 
-#define WIHTESPACE " \t\n"
 #define SPECIAL_LETTERS "{};"
 
 #define SERVER_DIRECTIVE "server"

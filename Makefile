@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude #-fsanitize=address,undefined
 CXX = c++
 
 NAME = webserv

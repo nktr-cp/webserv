@@ -1,7 +1,7 @@
 #ifndef TYPEDEFS_HPP
 #define TYPEDEFS_HPP
 
-#define MAX_BODY_SIZE 1000000
+#define MAX_BODY_SIZE 1000000U
 
 #include "Utils.hpp"
 #include "Errors.hpp"
@@ -68,9 +68,9 @@ enum : HttpStatus {
 };
 
 enum : HttpMethod {
-	GET = 1,
-	POST = 2,
-	DELETE = 4
+	GET =		0b001,
+	POST =		0b010,
+	DELETE =	0b100
 };
 
 #endif

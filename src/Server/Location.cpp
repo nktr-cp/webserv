@@ -9,6 +9,10 @@ Location::Location():
 	upload_path_(""),
 	redirect_("") {}
 
+void Location::setUri(const std::string& uri) {
+	this->uri_ = uri;
+}
+
 void Location::addMethod(const HttpMethod method) {
 	this->methods_ |= static_cast<short>(method);
 }
@@ -35,6 +39,10 @@ void Location::setUploadPath(const std::string& upload_path) {
 
 void Location::setRedirect(const std::string& redirect) {
 	this->redirect_ = redirect;
+}
+
+const std::string& Location::getUri() const {
+	return this->uri_;
 }
 
 short Location::getMethods() const {
@@ -66,6 +74,7 @@ const std::string& Location::getRedirect() const {
 }
 
 void Location::print() {
+	std::cout << "URI: " << this->uri_ << std::endl;
 	std::cout << "Methods: " << this->methods_ << std::endl;
 	std::cout << "Root: " << this->root_ << std::endl;
 	std::cout << "Autoindex: " << this->autoindex_ << std::endl;

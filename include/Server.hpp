@@ -20,7 +20,7 @@ class Server {
 		std::string host_;
 		std::string port_;
 		std::string server_name_;
-		int	max_body_size_;
+		unsigned int max_body_size_;
 
 		//utils
 		int sockfd_;
@@ -34,7 +34,7 @@ class Server {
 		void setHost(const std::string&);
 		void setPort(const std::string&);
 		void setServerName(const std::string&);
-		void setMaxBodySize(int);
+		void setMaxBodySize(unsigned int);
 
 		void addError(int, const std::string&);
 		void addLocation(const Location&);
@@ -42,7 +42,7 @@ class Server {
 		const std::string&	getHost() const;
 		const std::string&	getPort() const;
 		const std::string&	getServerName() const;
-		int					getMaxBodySize() const;
+		unsigned int		getMaxBodySize() const;
 
 		// server method
 		void create_socket();

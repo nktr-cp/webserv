@@ -20,7 +20,7 @@ void Server::setServerName(const std::string& server_name) {
 	this->server_name_ = server_name;
 }
 
-void Server::setMaxBodySize(int max_body_size) {
+void Server::setMaxBodySize(unsigned int max_body_size) {
 	this->max_body_size_ = max_body_size;
 }
 
@@ -44,7 +44,7 @@ const std::string& Server::getServerName() const {
 	return this->server_name_;
 }
 
-int Server::getMaxBodySize() const {
+unsigned int Server::getMaxBodySize() const {
 	return this->max_body_size_;
 }
 

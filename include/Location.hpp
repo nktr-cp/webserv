@@ -6,6 +6,7 @@
 class Location {
 	private:
 		//parsed
+		std::string uri_;
 		short methods_;
 		std::string root_;
 		bool autoindex_;
@@ -17,6 +18,7 @@ class Location {
 	public:
 		// setter, getter
 		Location();
+		void setUri(const std::string&);
 		void addMethod(const HttpMethod);
 		void setRoot(const std::string&);
 		void setAutoindex(bool);
@@ -25,6 +27,7 @@ class Location {
 		void setUploadPath(const std::string&);
 		void setRedirect(const std::string&);
 
+		const std::string&				getUri() const;
 		short						getMethods() const;
 		const std::string&				getRoot() const;
 		bool						getAutoindex() const;
