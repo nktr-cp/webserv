@@ -5,8 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "Server.hpp"
+#include "Client.hpp"
 #include "Typedefs.hpp"
 
 #define SPECIAL_LETTERS "{};"
@@ -29,10 +31,15 @@
 class Config {
 	private:
 		std::string content_;
+
+		fd_set readfds_, writefds_;
 		std::vector<Server> servers_;
+		std::vector<Client> clients_;
 
 	public:
 		Config(const std::string& filename);
+
+		// parse
 		void	parse();
 		void	parseServer();
 		void	parseError(Server *server);
@@ -49,6 +56,14 @@ class Config {
 		void	parseExtensions(Location *location);
 		void	parseUploadPath(Location *location);
 		void	parseRedirect(Location *location);
+
+		// server method
+		void set_select();
+		void accept_sockets();
+		void get_request();
+		void event_loop();
+		void create_sockets();
+		void close_sockets();
 		//debug
 		void printServers();
 };

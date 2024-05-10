@@ -32,9 +32,15 @@ CONFIG :=	$(addprefix Config/, $(CONFIG))
 SERVER =	Server.cpp \
 			Location.cpp
 SERVER := $(addprefix Server/, $(SERVER))
+
+CLIENT = Client.cpp
+CLIENT := $(addprefix Client/, $(CLIENT))
+
+LOCATION = Location.cpp
+LOCATION := $(addprefix Location/, $(LOCATION))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER)
+SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER) $(CLIENT)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 

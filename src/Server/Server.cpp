@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-const unsigned int Server::backlog_ = 10;
+const unsigned int Server::BACKLOG_ = 10;
 
 Server::Server():
 	host_(""),
@@ -48,6 +48,10 @@ unsigned int Server::getMaxBodySize() const {
 	return this->max_body_size_;
 }
 
+const int& Server::getSockfd() const {
+	return this->sockfd_;
+}
+
 void Server::create_socket() {
 	// hint: ネットワークアドレスを解消するための参考情報をもつ
 	// address: 返り値となる、完全なaddrinfo構造体
@@ -67,13 +71,13 @@ void Server::create_socket() {
 
 	// getaddrinfo()でaddress変数にアドレス情報を格納
 	if (getaddrinfo(host_.c_str(), port_.c_str(), &hints, &address) != 0) {
-		// throw ... # 適当な例外処理を投げるようにする
+		throw SysCallFailed();
 	}
 
 	// addressの情報を元にソケットを作成
 	sockfd_ = socket(address->ai_family, address->ai_socktype, address->ai_protocol);
 	if (sockfd_ == -1) {
-		// throw ... # 適当な例外処理を投げるようにする
+		throw SysCallFailed();
 	}
 
 	// socketのファイル状態フラグを決める
@@ -82,11 +86,11 @@ void Server::create_socket() {
 
 	// ソケットとアドレスの情報を関係付ける
 	if (bind(sockfd_, address->ai_addr, address->ai_addrlen) == -1) {
-		// throw ... # 適当な例外処理を投げるようにする
+		throw SysCallFailed();
 	}
 
 	/*****************************************
-  (この設定が必須かどうかは、よくわかってない)
+	(この設定が必須かどうかは、よくわかってない)
 	ソケットオプションの設定
 	SOL_SOCKET ... ソケットオプションレベルでの指定
 	SO_REUSEADDR ... すでに使用中のアドレスをバインドできるようになる
@@ -96,7 +100,7 @@ void Server::create_socket() {
 	setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	// クライアントからの接続要求待ちにする
-	if (listen(sockfd_, Server::backlog_) == -1) {
+	if (listen(sockfd_, Server::BACKLOG_) == -1) {
 		throw SysCallFailed();
 	}
 }

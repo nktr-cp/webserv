@@ -8,6 +8,9 @@ signed main(int argc, char **argv) {
 
 	try {
 		Config config(argv[1]);
+		while (true) {
+			config.event_loop();
+		}
 	} catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		return 1;

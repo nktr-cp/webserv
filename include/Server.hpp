@@ -5,8 +5,10 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/event.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <map>
 
 #include "Location.hpp"
@@ -24,7 +26,7 @@ class Server {
 
 		//utils
 		int sockfd_;
-		static const unsigned int backlog_;
+		static const unsigned int BACKLOG_;
 
 	public:
 		// constructor, destructor
@@ -41,6 +43,7 @@ class Server {
 
 		const std::string&	getHost() const;
 		const std::string&	getPort() const;
+		const int& getSockfd() const;
 		const std::string&	getServerName() const;
 		unsigned int		getMaxBodySize() const;
 
