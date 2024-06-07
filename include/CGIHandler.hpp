@@ -2,6 +2,12 @@
 #define CGI_HANDLER_HPP_
 
 #include <string>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sstream>
+#include <iostream>
+#include <vector>
 #include "Request.hpp"
 #include "Response.hpp"
 
