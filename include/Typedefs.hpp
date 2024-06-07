@@ -6,9 +6,11 @@
 #include "Utils.hpp"
 #include "Errors.hpp"
 #include <vector>
+#include <map>
 
 typedef short HttpStatus;
 typedef short HttpMethod;
+typedef std::map<std::string, std::string> dict;
 
 enum : HttpStatus {
 	CONTINUE = 100,
@@ -72,5 +74,6 @@ enum : HttpMethod {
 	POST = 2,
 	DELETE = 4
 };
+
 
 #endif

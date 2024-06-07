@@ -38,9 +38,18 @@ CLIENT := $(addprefix Client/, $(CLIENT))
 
 LOCATION = Location.cpp
 LOCATION := $(addprefix Location/, $(LOCATION))
+
+RESPONSE = Response.cpp
+RESPONSE := $(addprefix Response/, $(RESPONSE))
+
+REQUEST = Request.cpp
+REQUEST := $(addprefix Request/, $(REQUEST))
+
+CGIHANDLER = CGIHandler.cpp
+CGIHANDLER := $(addprefix CGIHandler/, $(CGIHANDLER))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER) $(CLIENT)
+SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER) $(CLIENT) $(LOCATION) $(RESPONSE) $(REQUEST) $(CGIHANDLER)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
