@@ -19,6 +19,10 @@ class Server {
   Response response_;
   Request request_;
 
+  static void set_select();
+  static void accept_clients();
+  static void read_requests();
+
  public:
   Server(const std::string& file_path);
 

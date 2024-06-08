@@ -12,7 +12,8 @@ int main(int ac, char** av) {
   std::string config_file = ac == 2 ? av[1] : "default.conf";
 
   try {
-    Config config(config_file);
+    Server webserv(config_file);
+    webserv.start();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;
