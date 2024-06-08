@@ -24,6 +24,14 @@ void ServerConfig::addError(int status, const std::string& path) {
       static_cast<HttpStatus>(status), path));
 }
 
+const std::map<HttpStatus, std::string>& ServerConfig::getErrors() const {
+  return this->errors_;
+}
+
+const std::vector<Location>& ServerConfig::getLocations() const {
+  return this->locations_;
+}
+
 const std::string& ServerConfig::getHost() const { return this->host_; }
 
 const std::string& ServerConfig::getPort() const { return this->port_; }

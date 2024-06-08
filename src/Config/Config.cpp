@@ -237,7 +237,6 @@ void Config::parseRedirect(Location *location) {
 }
 
 Config::Config(const std::string &filename) {
-  std::string raw;
   std::ifstream file(filename);
 
   if (!file.is_open()) {
@@ -248,11 +247,15 @@ Config::Config(const std::string &filename) {
   while (std::getline(file, line)) {
     size_t pos = line.find_first_of("#");
     if (pos == std::string::npos) {
-      raw.append(line);
+      content_.append(line);
     } else {
       std::string add_line = line.substr(0, pos);
-      raw.append(add_line);
+      content_.append(add_line);
     }
   }
   this->parse();
+}
+
+std::vector<ServerConfig> Config::getServerConfigs() const {
+  return this->server_configs_;
 }
