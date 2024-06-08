@@ -1,24 +1,20 @@
-#include "Config.hpp"
+#include <iostream>
 
-signed main(int argc, char **argv) {
-	if (argc != 2) {
-		std::cerr << "Usage: ./webserv <filename>" << std::endl;
-		return 1;
-	}
+#include "config.hpp"
+#include "server.hpp"
 
-	try {
-		Config config(argv[1]);
-		while (true) {
-			config.event_loop();
-		}
-	} catch (std::exception &e) {
-		std::cerr << e.what() << std::endl;
-		return 1;
-	}
+int main(int ac, char** av) {
+  if (ac > 2) {
+    std::cerr << "Usage: " << av[0] << " <config_file>" << std::endl;
+    return 1;
+  }
+
+  std::string config_file = ac == 2 ? av[1] : "default.conf";
+
+  try {
+    Config config(config_file);
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
 }
-
-// __attribute__((destructor))
-// static void	leaks(void)
-// {
-// 	system("leaks -q webserv");
-// }

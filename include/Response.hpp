@@ -1,20 +1,16 @@
 #ifndef RESPONSE_HPP_
 #define RESPONSE_HPP_
 
-#include <string>
-#include "Typedefs.hpp"
+typedef std::map<std::string, std::string> dict;
 
 class Response {
-	private:
-		int status_code_;
-		dict headers_;
-		std::string body_;
-	public:
-		Response(int, dict, std::string);
+ private:
+  int status_code_;
+  dict headers_;
+  std::string body_;
 
-		int get_status_code() const;
-		dict get_headers() const;
-		std::string get_body() const;
+ public:
+  Response(int, dict, std::string);
 };
 
-#endif // RESPONSE_HPP_
+#endif  // RESPONSE_HPP_
