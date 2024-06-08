@@ -49,6 +49,8 @@ class ServerConfig {
 
   const std::string &getHost() const;
   const std::string &getPort() const;
+  const std::map<HttpStatus, std::string> &getErrors() const;
+  const std::vector<Location> &getLocations() const;
   const int &getSockfd() const;
   const std::string &getServerName() const;
   int getMaxBodySize() const;
@@ -79,8 +81,7 @@ class Config {
  public:
   Config(const std::string &filename);
 
-  void load(const std::string &filename);
-  std::string get(const std::string &key) const;
+  std::vector<ServerConfig> getServerConfigs() const;
 };
 
 #endif  // CONFIG_HPP_

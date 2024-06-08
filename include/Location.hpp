@@ -27,7 +27,7 @@ class Location {
 
   short getMethods() const;
   const std::string& getRoot() const;
-  bool getAutoindex() const;
+  bool isAutoIndex() const;
   const std::string& getIndex() const;
   const std::vector<std::string>& getExtensions() const;
   const std::string& getUploadPath() const;

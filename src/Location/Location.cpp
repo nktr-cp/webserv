@@ -35,7 +35,7 @@ short Location::getMethods() const { return this->methods_; }
 
 const std::string& Location::getRoot() const { return this->root_; }
 
-bool Location::getAutoindex() const { return this->autoindex_; }
+bool Location::isAutoIndex() const { return this->autoindex_; }
 
 const std::string& Location::getIndex() const { return this->index_; }
 
