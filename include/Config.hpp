@@ -1,15 +1,13 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
-#include <iostream>
 #include <fstream>
-#include <sstream>
+#include <map>
 #include <string>
-#include <vector>
 
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Typedefs.hpp"
+#include "location.hpp"
+#include "typedefs.hpp"
+#include "utils.hpp"
 
 #define WIHTESPACE " \t\n"
 #define SPECIAL_LETTERS "{};"
@@ -29,44 +27,60 @@
 #define UPLOAD_PATH_DIRECTIVE "uploadpath"
 #define REDIRECT_DIRECTIVE "redirect"
 
-class Config {
-	private:
-		std::string content_;
+class ServerConfig {
+ private:
+  std::map<HttpStatus, std::string> errors_;
+  std::vector<Location> locations_;
+  std::string host_;
+  std::string port_;
+  std::string server_name_;
+  int max_body_size_;
 
-		fd_set readfds_, writefds_;
-		std::vector<Server> servers_;
-		std::vector<Client> clients_;
+ public:
+  ServerConfig();
 
-	public:
-		Config(const std::string& filename);
+  void setHost(const std::string &);
+  void setPort(const std::string &);
+  void setServerName(const std::string &);
+  void setMaxBodySize(int);
 
-		// parse
-		void	parse();
-		void	parseServer();
-		void	parseError(Server *server);
-		void	parseMaxBody(Server *server);
-		void	parseHost(Server *server);
-		void	parsePortNumber(Server *server);
-		void	parseServerName(Server *server);
+  void addError(int, const std::string &);
+  void addLocation(const Location &);
 
-		void	parseLocation(Server *server);
-		void	parseMethods(Location *location);
-		void	parseRoot(Location *location);
-		void	parseAutoIndex(Location *location);
-		void	parseIndex(Location *location);
-		void	parseExtensions(Location *location);
-		void	parseUploadPath(Location *location);
-		void	parseRedirect(Location *location);
-
-		// server method
-		void set_select();
-		void accept_sockets();
-		void get_request();
-		void event_loop();
-		void create_sockets();
-		void close_sockets();
-		//debug
-		void printServers();
+  const std::string &getHost() const;
+  const std::string &getPort() const;
+  const int &getSockfd() const;
+  const std::string &getServerName() const;
+  int getMaxBodySize() const;
 };
 
-#endif // CONFIG_HPP_
+class Config {
+ private:
+  std::string content_;
+  std::vector<ServerConfig> server_configs_;
+
+  void parse();
+  void parseServer();
+  void parseError(ServerConfig *server);
+  void parseMaxBody(ServerConfig *server);
+  void parseHost(ServerConfig *server);
+  void parsePortNumber(ServerConfig *server);
+  void parseServerName(ServerConfig *server);
+
+  void parseLocation(ServerConfig *server);
+  void parseMethods(Location *location);
+  void parseRoot(Location *location);
+  void parseAutoIndex(Location *location);
+  void parseIndex(Location *location);
+  void parseExtensions(Location *location);
+  void parseUploadPath(Location *location);
+  void parseRedirect(Location *location);
+
+ public:
+  Config(const std::string &filename);
+
+  void load(const std::string &filename);
+  std::string get(const std::string &key) const;
+};
+
+#endif  // CONFIG_HPP_

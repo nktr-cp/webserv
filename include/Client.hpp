@@ -1,22 +1,17 @@
-#ifndef CLIENNT_HPP_
-#define CLIENNT_HPP_
+#ifndef CLIENT_HPP_
+#define CLIENT_HPP_
 
-#include <string>
-#include "Server.hpp"
+#include "request.hpp"
+#include "response.hpp"
 
 class Client {
-	private:
-		static const int MAX_REQUEST_ENTITY_;
-		int sockfd_;
-		const Server* server_ptr_;
+ private:
+  int socket_;
+  Request request_;
+  Response response_;
 
-	public:
-		Client();
-		Client(const Server&);
-
-		void setSockfd(const int&);
-		const int& getSockfd() const;
-
+ public:
+  Client(int);
 };
 
-#endif // CLIENT_HPP_
+#endif  // CLIENT_HPP_

@@ -21,35 +21,21 @@ OBJSDIR = obj
 MAIN =		main.cpp
 # MAIN :=		$(addprefix main/, $(MAIN))
 
-UTIL =		Utils.cpp \
-			Errors.cpp
-UTIL :=		$(addprefix Util/, $(UTIL))
+UTILS =		utils.cpp
+UTILS :=		$(addprefix utils/, $(UTILS))
 
-CONFIG =	Config.cpp \
-			Parse.cpp
-CONFIG :=	$(addprefix Config/, $(CONFIG))
+LOCATION =	location.cpp
+LOCATION :=		$(addprefix location/, $(LOCATION))
 
-SERVER =	Server.cpp \
-			Location.cpp
-SERVER := $(addprefix Server/, $(SERVER))
+CONFIG =	config.cpp \
+			server_config.cpp
+CONFIG :=		$(addprefix config/, $(CONFIG))
 
-CLIENT = Client.cpp
-CLIENT := $(addprefix Client/, $(CLIENT))
-
-LOCATION = Location.cpp
-LOCATION := $(addprefix Location/, $(LOCATION))
-
-RESPONSE = Response.cpp
-RESPONSE := $(addprefix Response/, $(RESPONSE))
-
-REQUEST = Request.cpp
-REQUEST := $(addprefix Request/, $(REQUEST))
-
-CGIHANDLER = CGIHandler.cpp
-CGIHANDLER := $(addprefix CGIHandler/, $(CGIHANDLER))
+# REQUEST =	request.cpp
+# REQUEST :=		$(addprefix request/, $(REQUEST))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER) $(CLIENT) $(LOCATION) $(RESPONSE) $(REQUEST) $(CGIHANDLER)
+SRCS =	$(MAIN) $(UTILS) $(LOCATION) $(CONFIG)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
