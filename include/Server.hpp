@@ -1,10 +1,14 @@
 #ifndef SERVER_HPP_
 #define SERVER_HPP_
 
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/event.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/event.h>
+
+#include <cassert>
 
 #include "cache.hpp"
 #include "client.hpp"
@@ -16,36 +20,42 @@
 
 class Server {
  private:
-  Cache cache_;
-  Config config_;
+  ServerConfig config_;
   std::vector<Client> clients_;
-  IOManager io_manager_;
-  Router router_;
-  Response response_;
-  Request request_;
   int sock_fd_;
+  SocketType type_;
 
  public:
-  Server(const std::string& file_path);
+  Server(ServerConfig config);
 
-  void start();
-  void stop();
-  void acceptClient();
+  void addClient(int client_fd);
 
   int getSockfd() const;
+  SocketType getType() const;
+  std::vector<Client> getClients() const;
 };
 
 class ServerManager {
-  private:
-    fd_set readfds_, writefds_;
-    std::vector<Server> servers_;
+ private:
+  static const int MAX_EVENTS = 10;
 
-  static void set_select();
-  static void accept_clients();
-  static void read_requests();
+  int kq_;
+  std::vector<struct kevent> changes_;
+  std::vector<Server> servers_;
 
-  public:
-    void add_server(Server server);
+  int find_server_index(int sock_fd);
+  void register_fd();
+  void handle_server(SocketPair sp);
+  void handle_client(SocketPair sp);
+  void event_loop();
+
+ public:
+  ServerManager(const std::string& file_path);
+
+  void run();
+
+  std::vector<Server> getServers() const;
+  size_t size() const;
 };
 
 #endif  // SERVER_HPP_
