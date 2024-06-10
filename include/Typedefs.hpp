@@ -8,9 +8,12 @@
 
 #include "utils.hpp"
 
+enum SocketType { kServer, kClient };
+
 typedef short HttpStatus;
 typedef short HttpMethod;
 typedef std::map<std::string, std::string> dict;
+typedef std::pair<SocketType, int> SocketPair;
 
 enum : HttpStatus {
   CONTINUE = 100,

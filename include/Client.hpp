@@ -6,12 +6,14 @@
 
 class Client {
  private:
-  int socket_;
-  Request request_;
-  Response response_;
+  int sock_fd_;
+  // Request request_;
+  // Response response_;
 
  public:
   Client(int);
+
+  int getSockfd() const;
 };
 
 #endif  // CLIENT_HPP_
