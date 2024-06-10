@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude #-fsanitize=address,undefined
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 CXX = c++
 
 NAME = webserv
@@ -21,18 +21,28 @@ OBJSDIR = obj
 MAIN =		main.cpp
 # MAIN :=		$(addprefix main/, $(MAIN))
 
-UTIL =		Utils.cpp
-UTIL :=		$(addprefix Util/, $(UTIL))
+UTILS =		utils.cpp
+UTILS :=		$(addprefix utils/, $(UTILS))
 
-CONFIG =	Config.cpp \
-			Parse.cpp
-CONFIG :=	$(addprefix Config/, $(CONFIG))
+LOCATION =	location.cpp
+LOCATION :=		$(addprefix location/, $(LOCATION))
 
-SERVER = Server.cpp
-SERVER := $(addprefix Server/, $(SERVER))
+CONFIG =	config.cpp \
+			server_config.cpp
+CONFIG :=		$(addprefix config/, $(CONFIG))
+
+SERVER =	server.cpp \
+			server_manager.cpp
+SERVER :=		$(addprefix server/, $(SERVER))
+
+CLIENT =	client.cpp
+CLIENT :=		$(addprefix client/, $(CLIENT))
+
+# REQUEST =	request.cpp
+# REQUEST :=		$(addprefix request/, $(REQUEST))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTIL) $(CONFIG) $(SERVER)
+SRCS =	$(MAIN) $(UTILS) $(LOCATION) $(CONFIG) $(SERVER) $(CLIENT)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 

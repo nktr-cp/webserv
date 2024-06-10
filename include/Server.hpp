@@ -1,37 +1,61 @@
 #ifndef SERVER_HPP_
 #define SERVER_HPP_
 
-#include <string>
-#include <vector>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <fcntl.h>
+#include <netdb.h>
+#include <sys/event.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "Location.hpp"
+#include <cassert>
+
+#include "cache.hpp"
+#include "client.hpp"
+#include "config.hpp"
+#include "io_manager.hpp"
+#include "request.hpp"
+#include "response.hpp"
+#include "router.hpp"
 
 class Server {
-	private:
-		std::string host_;
-		std::string port_;
-		std::vector<Location> locations_;
+ private:
+  ServerConfig config_;
+  std::vector<Client> clients_;
+  int sock_fd_;
+  SocketType type_;
 
-		int sockfd_;
-		static const unsigned int backlog_;
-	public:
-		// constructor, destructor
-		Server();
+ public:
+  Server(ServerConfig config);
 
-		// setter, getter
-		void setHost(const std::string&);
-		void setPort(const std::string&);
-		void addLocation(const Location&);
+  void addClient(int client_fd);
 
-		const std::string& getHost() const;
-		const std::string& getPort() const;
-
-		// server method
-		void create_socket();
+  int getSockfd() const;
+  SocketType getType() const;
+  std::vector<Client> getClients() const;
 };
 
-#endif // SERVER_HPP_
+class ServerManager {
+ private:
+  static const int MAX_EVENTS = 10;
+
+  int kq_;
+  std::vector<struct kevent> changes_;
+  std::vector<Server> servers_;
+
+  int find_server_index(int sock_fd);
+  void register_fd();
+  void handle_server(SocketPair sp);
+  void handle_client(SocketPair sp);
+  void event_loop();
+
+ public:
+  ServerManager(const std::string& file_path);
+
+  void run();
+
+  std::vector<Server> getServers() const;
+  size_t size() const;
+};
+
+#endif  // SERVER_HPP_
