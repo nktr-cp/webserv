@@ -13,7 +13,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
-file(GLOB_RECURSE TEST_SOURCES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
+file(GLOB_RECURSE TEST_SOURCES "${CMAKE_SOURCE_DIR}/tests/*.cpp" "${CMAKE_SOURCE_DIR}/src/*/*.cpp")
 
 add_executable(webserv_test ${TEST_SOURCES})
 target_include_directories(webserv_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
