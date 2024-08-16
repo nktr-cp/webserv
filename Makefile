@@ -19,30 +19,9 @@ OBJSDIR = obj
 
 ##############################################################################
 MAIN =		main.cpp
-# MAIN :=		$(addprefix main/, $(MAIN))
-
-UTILS =		utils.cpp
-UTILS :=		$(addprefix utils/, $(UTILS))
-
-LOCATION =	location.cpp
-LOCATION :=		$(addprefix location/, $(LOCATION))
-
-CONFIG =	config.cpp \
-			server_config.cpp
-CONFIG :=		$(addprefix config/, $(CONFIG))
-
-SERVER =	server.cpp \
-			server_manager.cpp
-SERVER :=		$(addprefix server/, $(SERVER))
-
-CLIENT =	client.cpp
-CLIENT :=		$(addprefix client/, $(CLIENT))
-
-# REQUEST =	request.cpp
-# REQUEST :=		$(addprefix request/, $(REQUEST))
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTILS) $(LOCATION) $(CONFIG) $(SERVER) $(CLIENT)
+SRCS =	$(MAIN) 
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
