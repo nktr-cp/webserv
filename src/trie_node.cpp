@@ -1,7 +1,11 @@
 #include "trie_node.hpp"
+#include "http_request.hpp"
 
 template<typename T>
-TrieNode<T>::TrieNode() {}
+TrieNode<T>::TrieNode() :
+    children(26, NULL),
+    is_end(false)
+    {}
 template<typename T>
 TrieNode<T>::TrieNode(const TrieNode &src) {
     *this = src;
@@ -17,7 +21,7 @@ TrieNode<T> &TrieNode<T>::operator=(const TrieNode<T> &src) {
 }
 template<typename T>
 TrieNode<T>::~TrieNode() {
-    for (size_t i = 0; i < this->children.size(); i++) {
+    for (std::size_t i = 0; i < this->children.size(); i++) {
         if (this->children[i] != NULL)
             delete this->children[i];
     }
@@ -26,7 +30,7 @@ TrieNode<T>::~TrieNode() {
 template<typename T>
 void TrieNode<T>::insert(const char *key, T value) {
     TrieNode<T> *current = this;
-    for (size_t i = 0; key[i] != '\0'; i++) {
+    for (std::size_t i = 0; key[i] != '\0'; i++) {
         if (current->children[key[i] - 'A'] == NULL)
             current->children[key[i] - 'A'] = new TrieNode<T>();
         current = current->children[key[i] - 'A'];
@@ -37,24 +41,36 @@ void TrieNode<T>::insert(const char *key, T value) {
 
 template<typename T>
 T TrieNode<T>::search(const char *key) const {
-    TrieNode<T> *current = this;
-    for (size_t i = 0; key[i] != '\0'; i++) {
-        if (current->children[key[i] - 'A'] == NULL)
-            return T();
-        current = current->children[key[i] - 'A'];
+    const TrieNode<T> *current = this;
+    try {
+        for (std::size_t i = 0; key[i] != '\0'; i++) {
+            if (current->children.at(key[i] - 'A') == NULL)
+                return T();
+            current = current->children.at(key[i] - 'A');
+        }
+    }
+    catch (const std::out_of_range &e) {
+        return T();
     }
     return current->value;
 }
 
 template<typename T>
-T TrieNode<T>::search(const char *key, char end) const {
-    TrieNode<T> *current = this;
-    for (size_t i = 0; key[i] != '\0' || key[i] != end; i++) {
-        if (current->children[key[i] - 'A'] == NULL)
-            return T();
-        current = current->children[key[i] - 'A'];
+T TrieNode<T>::search(const char *key, const char end) const {
+    const TrieNode<T> *current = this;
+    try {
+        for (std::size_t i = 0; key[i] != '\0' && key[i] != end; i++) {
+            if (current->children.at(key[i] - 'A') == NULL)
+                return T();
+            current = current->children.at(key[i] - 'A');
+        }
+    }
+    catch (const std::out_of_range& e) {
+        return T();
     }
     if (current->is_end)
         return current->value;
     return T();
 }
+
+template class TrieNode<HttpMethod>;
