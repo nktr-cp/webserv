@@ -1,12 +1,13 @@
 #include "http_request.hpp"
 #include "trie_node.hpp"
 #include <string>
-#include <unordered_map>
+#include <map>
+#include <iostream>
 
 HttpRequest::HttpRequest() {}
 HttpRequest::HttpRequest(const char *raw_request) {
-    size_t i = 0;
-    size_t j = 0;
+    std::size_t i = 0;
+    std::size_t j = 0;
 
     // Parse method
     this->method = method_trie.search(raw_request, ' ');
@@ -26,12 +27,12 @@ HttpRequest::HttpRequest(const char *raw_request) {
     if (this->uri.empty() || raw_request[j] != ' ') {
         throw BadRequestException();
     }
-    j = ++i;
+    i = ++j;
 
     // Parse version
     for (; raw_request[j] != '\r'; j++);
     this->version = std::string(raw_request + i, j - i);
-    if (this->version.empty() || raw_request[j + 1] != '\n') {
+    if (this->version.empty() || raw_request[j + 1] != '\n'|| this->version != "HTTP/1.1") {
         throw BadRequestException();
     }
     i = j + 2;
@@ -96,7 +97,7 @@ const std::string &HttpRequest::get_uri() const {
 const std::string &HttpRequest::get_version() const {
     return this->version;
 }
-const std::unordered_map<std::string, std::string> &HttpRequest::get_header() const {
+const std::map<std::string, std::string> &HttpRequest::get_header() const {
     return this->headers;
 }
 const std::string &HttpRequest::get_header(const std::string &key) const {
