@@ -8,15 +8,15 @@ int main(int ac, char **av) {
     return 1;
   }
 
-  std::string config_file;
+  std::string configFile;
   if (ac == 1) {
-    config_file = "config/default.conf";
+    configFile = "config/default.conf";
   } else {
-    config_file = av[1];
+    configFile = av[1];
   }
 
   try {
-    Webserv webserv(config_file);
+    Webserv webserv(configFile);
     webserv.run();
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;

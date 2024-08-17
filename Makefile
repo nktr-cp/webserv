@@ -19,9 +19,13 @@ OBJSDIR = obj
 
 ##############################################################################
 MAIN =		main.cpp
+
+WEBSERV = webserv.cpp
+
+SERVER =  server.cpp
 ##############################################################################
 
-SRCS =	$(MAIN) 
+SRCS =	$(MAIN) $(WEBSERV) $(SERVER)
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
