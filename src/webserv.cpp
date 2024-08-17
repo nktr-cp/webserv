@@ -15,7 +15,7 @@ void Webserv::run() {
   createServerSockets();
 
   // Create kqueue
-  int kq_ = kqueue();
+  kq_ = kqueue();
   if (kq_ == -1) {
     throw std::runtime_error("kqueue failed");
   }

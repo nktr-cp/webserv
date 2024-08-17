@@ -40,7 +40,7 @@ void Server::createSocket() {
   fcntl(server_fd_, F_SETFL, flags | O_NONBLOCK);
 }
 
-Server::Server() { port_ = 42; }
+Server::Server() { port_ = 8080; }
 
 Server::~Server() {}
 
