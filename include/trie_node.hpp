@@ -19,3 +19,5 @@ class TrieNode {
   T search(const char *key) const;
   T search(const char *key, char end) const;
 };
+
+#include "trie_node.tpp"
