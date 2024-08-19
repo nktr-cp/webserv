@@ -1,20 +1,21 @@
 #pragma once
+#include <cstddef>
 #include <vector>
 
-template<typename T>
+template <typename T>
 class TrieNode {
-    private:
-    std::vector<TrieNode<T> *> children = std::vector<TrieNode<T> *>(26, NULL);
-    T value;
-    bool is_end = false;
+ private:
+  std::vector<TrieNode<T> *> children_;
+  T value_;
+  bool is_end_ = false;
 
-    public:
-    TrieNode();
-    TrieNode(const TrieNode &src);
-    TrieNode &operator=(const TrieNode &src);
-    ~TrieNode();
+ public:
+  TrieNode();
+  TrieNode(const TrieNode &src);
+  TrieNode &operator=(const TrieNode &src);
+  ~TrieNode();
 
-    void insert(const char *key, T value);
-    T search(const char *key) const;
-    T search(const char *key, char end) const;
+  void insert(const char *key, T value);
+  T search(const char *key) const;
+  T search(const char *key, char end) const;
 };

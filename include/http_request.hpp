@@ -1,43 +1,45 @@
 #pragma once
-#include "trie_node.hpp"
+#include <cstddef>
+#include <map>
 #include <string>
-#include <unordered_map>
+
+#include "trie_node.hpp"
 
 enum HttpMethod {
-    GET,
-    HEAD,
-    POST,
-    OPTIONS,
-    PUT,
-    DELETE,
-    NONE = 0,
+  NONE = 0,
+  GET,
+  HEAD,
+  POST,
+  OPTIONS,
+  PUT,
+  DELETE,
 };
 
 class HttpRequest {
-    private:
-    static const TrieNode<HttpMethod> method_trie;
-    HttpMethod method;
-    std::string uri;
-    std::string version;
-    std::unordered_map<std::string, std::string> headers;
-    std::string body;
+ private:
+  static const TrieNode<HttpMethod> kMethodTrie;
+  HttpMethod method_;
+  std::string uri_;
+  std::string version_;
+  std::map<std::string, std::string> headers_;
+  std::string body_;
 
-    public:
-    HttpRequest();
-    HttpRequest(const char *raw_request);
-    HttpRequest(const HttpRequest &src);
-    HttpRequest &operator=(const HttpRequest &src);
-    ~HttpRequest();
+ public:
+  HttpRequest();
+  HttpRequest(const char *raw_request);
+  HttpRequest(const HttpRequest &src);
+  HttpRequest &operator=(const HttpRequest &src);
+  ~HttpRequest();
 
-    HttpMethod get_method() const;
-    const std::string &get_uri() const;
-    const std::string &get_version() const;
-    const std::unordered_map<std::string, std::string> &get_header() const;
-    const std::string &get_header(const std::string &key) const;
-    const std::string &get_body() const;
+  HttpMethod get_method() const;
+  const std::string &get_uri() const;
+  const std::string &get_version() const;
+  const std::map<std::string, std::string> &get_header() const;
+  const std::string &get_header(const std::string &key) const;
+  const std::string &get_body() const;
 
-    class BadRequestException : public std::exception {
-        public:
-        const char *what() const throw();
-    };
+  class BadRequestException : public std::exception {
+   public:
+    const char *what() const throw();
+  };
 };
