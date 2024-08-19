@@ -68,5 +68,3 @@ T TrieNode<T>::search(const char *key, const char end) const {
   if (current->is_end_) return current->value_;
   return T();
 }
-
-template class TrieNode<HttpMethod>;
