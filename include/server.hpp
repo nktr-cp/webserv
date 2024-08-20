@@ -11,6 +11,8 @@
 #include <stdexcept>
 
 #include "config.hpp"
+#include "http_request.hpp"
+#include "http_response.hpp"
 
 class Server {
  private:
@@ -23,6 +25,7 @@ class Server {
   ~Server();
 
   void createSocket();
+  void handleRequest(HttpRequest& request, HttpResponse& response);
 
   int getServerFd() const;
 };

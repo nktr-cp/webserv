@@ -24,57 +24,58 @@ class HttpRequest {
   std::string body_;
   size_t content_length_;
 
-  const char *parse_method(const char *req);
-  const char *parse_uri(const char *req);
-  const char *parse_version(const char *req);
-  const char *parse_header(const char *req);
+  const char* parseMethod(const char* req);
+  const char* parseUri(const char* req);
+  const char* parseVersion(const char* req);
+  const char* parseHeader(const char* req);
 
  public:
   HttpRequest();
-  HttpRequest(const char *raw_request);
-  HttpRequest(const HttpRequest &src);
-  HttpRequest &operator=(const HttpRequest &src);
+  HttpRequest(const char* raw_request);
+  HttpRequest(const HttpRequest& src);
+  HttpRequest& operator=(const HttpRequest& src);
   ~HttpRequest();
 
-  HttpMethod get_method() const;
-  const std::string &get_uri() const;
-  const dict &get_query() const;
-  const std::string &get_query(const std::string &key) const;
-  const std::string &get_host_name() const;
-  const std::string &get_host_port() const;
-  const std::string &get_version() const;
-  const dict &get_header() const;
-  const std::string &get_header(const std::string &key) const;
-  const std::string &get_body() const;
+  HttpMethod getMethod() const;
+  const std::string& getUri() const;
+  const dict& getQuery() const;
+  const std::string& getQuery(const std::string& key) const;
+  const std::string& getHostName() const;
+  const std::string& getHostPort() const;
+  const std::string& getVersion() const;
+  const dict& getHeader() const;
+  const std::string& getHeader(const std::string& key) const;
+  const std::string& getBody() const;
 
   class RequestException : public std::exception {
-    private:
-      HttpStatus http_status_;
-      const char *message_;
-    public:
-      RequestException(HttpStatus http_status);
-      RequestException(HttpStatus http_status, const char *message);
-      const char *what() const throw();
-      HttpStatus get_status() const;
+   private:
+    HttpStatus http_status_;
+    const char* message_;
+
+   public:
+    RequestException(HttpStatus http_status);
+    RequestException(HttpStatus http_status, const char* message);
+    const char* what() const throw();
+    HttpStatus get_status() const;
   };
   class BadRequestException : public RequestException {
-    public:
-      BadRequestException();
+   public:
+    BadRequestException();
   };
   class PayloadTooLargeException : public RequestException {
-    public:
-      PayloadTooLargeException();
+   public:
+    PayloadTooLargeException();
   };
   class UriTooLongException : public RequestException {
-    public:
-      UriTooLongException();
+   public:
+    UriTooLongException();
   };
   class RequestHeaderFieldsTooLargeException : public RequestException {
-    public:
-      RequestHeaderFieldsTooLargeException();
+   public:
+    RequestHeaderFieldsTooLargeException();
   };
   class InternalServerErrorException : public RequestException {
-    public:
-      InternalServerErrorException();
+   public:
+    InternalServerErrorException();
   };
 };

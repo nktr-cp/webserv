@@ -12,11 +12,11 @@ int main() {
     std::cout << raw_request << std::endl;
     try {
         HttpRequest request(raw_request.c_str());
-        std::cout << request.get_method() << std::endl;
-        std::cout << request.get_uri() << std::endl;
-        std::cout << request.get_version() << std::endl;
+        std::cout << request.getMethod() << std::endl;
+        std::cout << request.getUri() << std::endl;
+        std::cout << request.getVersion() << std::endl;
         
-        std::cout << request.get_body() << std::endl;
+        std::cout << request.getBody() << std::endl;
     }
     catch (const HttpRequest::RequestException &e) {
         std::cerr << e.what() << std::endl;

@@ -26,7 +26,8 @@ SRCS =	main.cpp \
 		config.cpp \
 		errors.cpp \
 		utils.cpp \
-		# http_request.cpp
+		http_request.cpp \
+		http_response.cpp
 ##############################################################################
 
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
