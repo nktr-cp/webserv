@@ -10,12 +10,10 @@
 
 enum SocketType { kServer, kClient };
 
-typedef short HttpStatus;
-typedef short HttpMethod;
 typedef std::map<std::string, std::string> dict;
 typedef std::pair<SocketType, int> SocketPair;
 
-enum : HttpStatus {
+enum HttpStatus {
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,
   PROCESSING = 102,
@@ -72,6 +70,14 @@ enum : HttpStatus {
   NOT_EXTENDED = 510,
 };
 
-enum : HttpMethod { GET = 1, POST = 2, DELETE = 4 };
+enum HttpMethod {
+  NONE = 0,
+  GET = 1,
+  POST = 2,
+  DELETE = 4,
+  HEAD,
+  OPTIONS,
+  PUT,
+};
 
 #endif  // TYPEDEFS_HPP
