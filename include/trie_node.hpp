@@ -7,7 +7,7 @@ class TrieNode {
  private:
   std::vector<TrieNode<T> *> children_;
   T value_;
-  bool is_end_ = false;
+  bool is_end_;
 
  public:
   TrieNode();

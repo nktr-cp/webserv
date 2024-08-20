@@ -18,8 +18,8 @@ int main() {
         
         std::cout << request.get_body() << std::endl;
     }
-    catch (const HttpRequest::BadRequestException &e) {
-        std::cerr << "Bad request" << std::endl;
+    catch (const HttpRequest::RequestException &e) {
+        std::cerr << e.what() << std::endl;
         return 1;
     }
 }
