@@ -4,9 +4,12 @@
 #include <sys/event.h>
 
 #include <string>
+#include <stdexcept>
 
 #include "config.hpp"
 #include "server.hpp"
+#include "http_request.hpp"
+#include "http_response.hpp"
 
 class Webserv {
  private:
