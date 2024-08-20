@@ -115,7 +115,7 @@ void Webserv::handleClientData(int client_fd) {
     if (servers_[i].getPort() == port) {
       server_found = true;
       Server server = servers_[i];
-      server.handleRequest(&request);
+      server.handleRequest(&request, &response);
       break;
     }
   }
@@ -123,17 +123,8 @@ void Webserv::handleClientData(int client_fd) {
     response.setStatus(NOT_FOUND);
   }
 
-  // MEMO: ここでリクエストをパース、レスポンスを生成する
-  // 上の機能が実装できれば以下のコードは消してください
-  std::string response =
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/plain\r\n"
-      "Content-Length: " +
-      std::to_string(recv_bytes) +
-      "\r\n"
-      "\r\n";
-
-  response.append(buffer_.begin(), buffer_.begin() + recv_bytes);
-  send(client_fd, response.c_str(), response.length(), 0);
+  // レスポンスをクライアントに送信
+  std::string res_str = response.encode();
+  send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
 }
