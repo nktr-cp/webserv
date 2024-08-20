@@ -18,10 +18,17 @@ SRCSDIR = src
 OBJSDIR = obj
 
 ##############################################################################
-MAIN =		main.cpp
+SRCS =	main.cpp \
+		webserv.cpp \
+		server.cpp \
+		server_config.cpp \
+		location.cpp \
+		config.cpp \
+		errors.cpp \
+		utils.cpp \
+		# http_request.cpp
 ##############################################################################
 
-SRCS =	$(MAIN) 
 SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
 OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
@@ -47,6 +54,4 @@ fclean: clean
 
 re: fclean all
 
-bonus:
-
-.PHONY: all clean fclean re bonus
+.PHONY: all 
