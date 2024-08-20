@@ -46,3 +46,45 @@ Server::Server(std::vector<ServerConfig> config) : config_(config) {}
 Server::~Server() {}
 
 int Server::getServerFd() const { return server_fd_; }
+
+void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
+  // 該当するコンフィグを探す
+  size_t tgt_index = 0;
+  while (tgt_index < config_.size()) {
+    if (config_[tgt_index].getServerName() == request.getHostName()) {
+      break;
+    }
+    tgt_index++;
+  }
+  if (tgt_index == config_.size()) {
+    tgt_index = 0;
+  }
+  std::string root_path;
+  std::string relative_path;
+  std::vector<Location> locations = config_[tgt_index].getLocations();
+  bool location_found = false;
+  for (size_t i = 0; i < locations.size(); i++) {
+    // TODO: Locationのマッチング
+  }
+  if (!location_found) {
+    // TODO: serverconfigのrootを使う
+    // TODO: rootが設定されていなければ404
+  }
+  // 暫定的にpathを設定
+  root_path = "/tmp";
+  relative_path = request.getUri();
+  switch (request.getMethod()) {
+    case HttpMethod::GET:
+      // GETリクエストの処理
+      break;
+    case HttpMethod::POST:
+      // POSTリクエストの処理
+      break;
+    case HttpMethod::DELETE:
+      // DELETEリクエストの処理
+      break;
+    default:
+      // 405 Method Not Allowed
+      break;
+  }
+}

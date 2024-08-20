@@ -4,20 +4,16 @@
 #include <stdexcept>
 #include <string>
 
+#include "server.hpp"
 #include "trie_node.hpp"
+#include "typedefs.hpp"
 
 std::string to_string(HttpMethod method) {
   switch (method) {
     case GET:
       return "GET";
-    case HEAD:
-      return "HEAD";
     case POST:
       return "POST";
-    case OPTIONS:
-      return "OPTIONS";
-    case PUT:
-      return "PUT";
     case DELETE:
       return "DELETE";
     default:
@@ -25,7 +21,7 @@ std::string to_string(HttpMethod method) {
   }
 }
 
-const char *HttpRequest::parse_method(const char *req) {
+const char *HttpRequest::parseMethod(const char *req) {
   this->method_ = kMethodTrie.search(req, ' ');
   size_t len = to_string(this->method_).size();
   if (this->method_ == NONE || req[len] != ' ') {
@@ -35,7 +31,7 @@ const char *HttpRequest::parse_method(const char *req) {
 }
 
 #include <iostream>
-const char *HttpRequest::parse_uri(const char *req) {
+const char *HttpRequest::parseUri(const char *req) {
   this->content_length_ = 0;
   // Parse URI
   std::size_t i = 0;
@@ -104,7 +100,7 @@ const char *HttpRequest::parse_uri(const char *req) {
   return req + 1;
 }
 
-const char *HttpRequest::parse_version(const char *req) {
+const char *HttpRequest::parseVersion(const char *req) {
   // Parse version
   std::size_t i = 0;
   for (; req[i] && req[i] != '\r'; i++) {
@@ -120,7 +116,7 @@ const char *HttpRequest::parse_version(const char *req) {
   return req + i + 2;
 }
 
-const char *HttpRequest::parse_header(const char *req) {
+const char *HttpRequest::parseHeader(const char *req) {
   this->content_length_ = 0;
   while (*req && req[0] != '\r') {
     size_t i = 0;
@@ -164,10 +160,10 @@ const char *HttpRequest::parse_header(const char *req) {
 HttpRequest::HttpRequest() {}
 HttpRequest::HttpRequest(const char *raw_request) {
   try {
-    raw_request = this->parse_method(raw_request);
-    raw_request = this->parse_uri(raw_request);
-    raw_request = this->parse_version(raw_request);
-    raw_request = this->parse_header(raw_request);
+    raw_request = this->parseMethod(raw_request);
+    raw_request = this->parseUri(raw_request);
+    raw_request = this->parseVersion(raw_request);
+    raw_request = this->parseHeader(raw_request);
     try {
       // Parse Host header
       std::string host = this->headers_.at("Host");
@@ -238,33 +234,29 @@ const size_t HttpRequest::kMaxHeaderSize = 8192;
 const size_t HttpRequest::kMaxPayloadSize = 8192;
 const size_t HttpRequest::kMaxUriSize = 1024;
 
-HttpMethod HttpRequest::get_method() const { return this->method_; }
-const std::string &HttpRequest::get_uri() const { return this->uri_; }
-const dict &HttpRequest::get_query() const {
-  return this->query_;
-}
-const std::string &HttpRequest::get_query(const std::string &key) const {
+HttpMethod HttpRequest::getMethod() const { return this->method_; }
+const std::string &HttpRequest::getUri() const { return this->uri_; }
+const dict &HttpRequest::getQuery() const { return this->query_; }
+const std::string &HttpRequest::getQuery(const std::string &key) const {
   return this->query_.at(key);
 }
-const std::string &HttpRequest::get_host_name() const {
+const std::string &HttpRequest::getHostName() const {
   return this->host_name_;
 }
-const std::string &HttpRequest::get_host_port() const {
+const std::string &HttpRequest::getHostPort() const {
   return this->host_port_;
 }
-const std::string &HttpRequest::get_version() const { return this->version_; }
-const dict &HttpRequest::get_header() const {
-  return this->headers_;
-}
-const std::string &HttpRequest::get_header(const std::string &key) const {
+const std::string &HttpRequest::getVersion() const { return this->version_; }
+const dict &HttpRequest::getHeader() const { return this->headers_; }
+const std::string &HttpRequest::getHeader(const std::string &key) const {
   return this->headers_.at(key);
 }
-const std::string &HttpRequest::get_body() const { return this->body_; }
+const std::string &HttpRequest::getBody() const { return this->body_; }
 
 HttpRequest::RequestException::RequestException(HttpStatus http_status)
     : http_status_(http_status), message_(NULL) {}
-HttpRequest::RequestException::RequestException(
-  HttpStatus http_status, const char *message)
+HttpRequest::RequestException::RequestException(HttpStatus http_status,
+                                                const char *message)
     : http_status_(http_status), message_(message) {}
 const char *HttpRequest::RequestException::what() const throw() {
   return this->message_;

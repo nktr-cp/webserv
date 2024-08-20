@@ -104,6 +104,25 @@ void Webserv::handleClientData(int client_fd) {
     return;
   }
 
+  // リクエストをパース
+  HttpRequest request = HttpRequest(buffer_.data());
+
+  // 該当するサーバーを探してリクエストを処理
+  HttpResponse response;
+  std::string port = request.get_host_port();
+  bool server_found = false;
+  for (size_t i = 0; i < servers_.size(); i++) {
+    if (servers_[i].getPort() == port) {
+      server_found = true;
+      Server server = servers_[i];
+      server.handleRequest(&request);
+      break;
+    }
+  }
+  if (!server_found) {
+    response.setStatus(NOT_FOUND);
+  }
+
   // MEMO: ここでリクエストをパース、レスポンスを生成する
   // 上の機能が実装できれば以下のコードは消してください
   std::string response =
