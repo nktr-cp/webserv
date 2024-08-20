@@ -10,14 +10,16 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "config.hpp"
+
 class Server {
  private:
-  int port_;
+  std::vector<ServerConfig> config_;
   int server_fd_;
   struct sockaddr_in address_;
 
  public:
-  Server();
+  Server(std::vector<ServerConfig> config);
   ~Server();
 
   void createSocket();
