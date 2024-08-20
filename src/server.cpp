@@ -17,9 +17,10 @@ void Server::createSocket() {
   }
 
   // Configure server address structure
+  int port = ft::stoui(config_[0].getPort(), (unsigned int[2]){0, 65535});
   address_.sin_family = AF_INET;          // IPv4
   address_.sin_addr.s_addr = INADDR_ANY;  // Bind to all available interfaces
-  address_.sin_port = htons(port_);       // Convert port to network byte order
+  address_.sin_port = htons(port);        // Convert port to network byte order
 
   // Bind the socket to the specified IP and port
   if (bind(server_fd_, reinterpret_cast<struct sockaddr*>(&address_),
@@ -40,7 +41,7 @@ void Server::createSocket() {
   fcntl(server_fd_, F_SETFL, flags | O_NONBLOCK);
 }
 
-Server::Server() { port_ = 8080; }
+Server::Server(std::vector<ServerConfig> config) : config_(config) {}
 
 Server::~Server() {}
 

@@ -1,8 +1,20 @@
 #include "webserv.hpp"
 
 Webserv::Webserv(const std::string &configFile) {
-  (void)configFile;
-  servers_.push_back(Server());
+  Config config(configFile);
+
+  std::map<std::string, std::vector<ServerConfig> > portToConfigs;
+
+  for (size_t i = 0; i < config.getServerConfigs().size(); i++) {
+    ServerConfig serverConfig = config.getServerConfigs()[i];
+    portToConfigs[serverConfig.getPort()].push_back(serverConfig);
+  }
+
+  for (std::map<std::string, std::vector<ServerConfig> >::iterator it =
+           portToConfigs.begin();
+       it != portToConfigs.end(); it++) {
+    servers_.push_back(Server(it->second));
+  }
 }
 
 void Webserv::createServerSockets() {
@@ -14,7 +26,6 @@ void Webserv::createServerSockets() {
 void Webserv::run() {
   createServerSockets();
 
-  // Create kqueue
   kq_ = kqueue();
   if (kq_ == -1) {
     throw std::runtime_error("kqueue failed");

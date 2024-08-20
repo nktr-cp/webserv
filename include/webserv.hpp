@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include "config.hpp"
 #include "server.hpp"
 
 class Webserv {
