@@ -1,9 +1,10 @@
+#include "trie_node.hpp"
+
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
 
 #include "http_request.hpp"
-#include "trie_node.hpp"
 
 template <typename T>
 TrieNode<T>::TrieNode() : children_(26, NULL), is_end_(false) {}

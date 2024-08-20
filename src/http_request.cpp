@@ -129,7 +129,7 @@ const char *HttpRequest::parse_header(const char *req) {
         throw RequestHeaderFieldsTooLargeException();
       }
     }
-    if (!req[i] || req[i] != ':' || req[i + 1] != ' ') {
+    if (req[i] != ':' || req[i + 1] != ' ') {
       throw BadRequestException();
     }
     std::string key = std::string(req, i);
@@ -144,7 +144,7 @@ const char *HttpRequest::parse_header(const char *req) {
         throw RequestHeaderFieldsTooLargeException();
       }
     }
-    if (!req[i] && req[i] != '\r' || req[i + 1] != '\n') {
+    if (req[i] != '\r' || req[i + 1] != '\n') {
       throw BadRequestException();
     }
     if (i == 0) {
@@ -191,6 +191,7 @@ HttpRequest::HttpRequest(const char *raw_request) {
   } catch (RequestException &e) {
     throw e;
   }
+  this->content_length_ = 0;
   if (!*raw_request) {
     this->body_ = "";
   } else if (raw_request[0] == '\r' && raw_request[1] == '\n') {
@@ -233,13 +234,15 @@ TrieNode<HttpMethod> initialize_method_trie() {
   return root;
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
-const int HttpRequest::kMaxHeaderSize = 8192;
-const int HttpRequest::kMaxPayloadSize = 8192;
-const int HttpRequest::kMaxUriSize = 1024;
+const size_t HttpRequest::kMaxHeaderSize = 8192;
+const size_t HttpRequest::kMaxPayloadSize = 8192;
+const size_t HttpRequest::kMaxUriSize = 1024;
 
 HttpMethod HttpRequest::get_method() const { return this->method_; }
 const std::string &HttpRequest::get_uri() const { return this->uri_; }
-const dict &HttpRequest::get_query() const { return this->query_; }
+const dict &HttpRequest::get_query() const {
+  return this->query_;
+}
 const std::string &HttpRequest::get_query(const std::string &key) const {
   return this->query_.at(key);
 }
@@ -250,7 +253,9 @@ const std::string &HttpRequest::get_host_port() const {
   return this->host_port_;
 }
 const std::string &HttpRequest::get_version() const { return this->version_; }
-const dict &HttpRequest::get_header() const { return this->headers_; }
+const dict &HttpRequest::get_header() const {
+  return this->headers_;
+}
 const std::string &HttpRequest::get_header(const std::string &key) const {
   return this->headers_.at(key);
 }
@@ -258,14 +263,13 @@ const std::string &HttpRequest::get_body() const { return this->body_; }
 
 HttpRequest::RequestException::RequestException(HttpStatus http_status)
     : http_status_(http_status), message_(NULL) {}
-HttpRequest::RequestException::RequestException(HttpStatus http_status,
-                                                const char *message) {
-  this->http_status_ = http_status;
-}
+HttpRequest::RequestException::RequestException(
+  HttpStatus http_status, const char *message)
+    : http_status_(http_status), message_(message) {}
 const char *HttpRequest::RequestException::what() const throw() {
   return this->message_;
 }
-const HttpStatus HttpRequest::RequestException::get_status() const {
+HttpStatus HttpRequest::RequestException::get_status() const {
   return this->http_status_;
 }
 
