@@ -8,6 +8,7 @@
 namespace ft {
 bool isNumber(const std::string& str);
 unsigned int stoui(const std::string& str, const unsigned int range[2]);
+std::string uitost(unsigned int n);
 }  // namespace ft
 
 // error class

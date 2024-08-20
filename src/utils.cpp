@@ -34,4 +34,14 @@ unsigned int stoui(const std::string& str, const unsigned int range[2]) {
     throw std::out_of_range("stoui: out of range");
   return n;
 }
+
+std::string uitost(unsigned int n) {
+  std::string str = "";
+  if (n == 0) return "0";
+  while (n) {
+    str = (char)(n % 10 + '0') + str;
+    n /= 10;
+  }
+  return str;
+}
 }  // namespace ft
