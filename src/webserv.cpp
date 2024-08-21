@@ -95,7 +95,6 @@ void Webserv::handleNewConnection(int server_fd) {
 
 void Webserv::handleClientData(int client_fd) {
   ssize_t recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
-  // ssize_t read_bytes = read(client_fd, &buffer_[0], kBufferSize);
   if (recv_bytes <= 0) {
     if (recv_bytes < 0) {
       throw std::runtime_error("recv failed");
@@ -109,13 +108,13 @@ void Webserv::handleClientData(int client_fd) {
 
   // 該当するサーバーを探してリクエストを処理
   HttpResponse response;
-  std::string port = request.get_host_port();
+  std::string port = request.getHostPort();
   bool server_found = false;
   for (size_t i = 0; i < servers_.size(); i++) {
-    if (servers_[i].getPort() == port) {
+    if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
       Server server = servers_[i];
-      server.handleRequest(&request, &response);
+      server.handleRequest(request, response);
       break;
     }
   }

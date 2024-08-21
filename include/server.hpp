@@ -28,6 +28,7 @@ class Server {
   void handleRequest(HttpRequest& request, HttpResponse& response);
 
   int getServerFd() const;
+  std::vector<ServerConfig> getConfig() const;
 };
 
 #endif  // SERVER_HPP_
