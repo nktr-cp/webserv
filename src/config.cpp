@@ -97,7 +97,8 @@ void Config::parseError(ServerConfig *server) {
 
   token = tokenize(content_);
   try {
-    code = ft::stoui(token, (unsigned int[2]){100, 599});
+    unsigned int range[] = {100, 599};
+    code = ft::stoui(token, range);
   } catch (std::invalid_argument &e) {
     throw InvalidArgument(token);
   } catch (std::out_of_range &e) {
@@ -115,7 +116,8 @@ void Config::parseMaxBody(ServerConfig *server) {
 
   token = tokenize(content_);
   try {
-    max_body = ft::stoui(token, (unsigned int[2]){0, MAX_BODY_SIZE});
+    unsigned int range[] = {0, MAX_BODY_SIZE};
+    max_body = ft::stoui(token, range);
   } catch (std::invalid_argument &e) {
     throw InvalidArgument(token);
   } catch (std::out_of_range &e) {
@@ -140,7 +142,8 @@ void Config::parsePortNumber(ServerConfig *server) {
 
   token = tokenize(content_);
   try {
-    ft::stoui(token, (unsigned int[2]){0, 65535});
+    unsigned int range[] = {0, 65535};
+    ft::stoui(token, range);
   } catch (std::invalid_argument &e) {
     throw InvalidArgument(token);
   } catch (std::out_of_range &e) {
@@ -237,7 +240,7 @@ void Config::parseRedirect(Location *location) {
 }
 
 Config::Config(const std::string &filename) {
-  std::ifstream file(filename);
+  std::ifstream file(filename.c_str());
 
   if (!file.is_open()) {
     throw std::runtime_error("Failed to open file: " + filename);

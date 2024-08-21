@@ -17,7 +17,8 @@ void Server::createSocket() {
   }
 
   // Configure server address structure
-  int port = ft::stoui(config_[0].getPort(), (unsigned int[2]){0, 65535});
+  unsigned int range[] = {0, 65535};
+  int port = ft::stoui(config_[0].getPort(), range);
   address_.sin_family = AF_INET;          // IPv4
   address_.sin_addr.s_addr = INADDR_ANY;  // Bind to all available interfaces
   address_.sin_port = htons(port);        // Convert port to network byte order

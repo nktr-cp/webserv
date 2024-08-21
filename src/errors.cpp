@@ -16,7 +16,7 @@ std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
 }
 
 SysCallFailed::SysCallFailed(void)
-    : ExtraErrors(ErrMsgWrapper(strerror(errno))) {}
+    : ExtraErrors(ErrMsgWrapper(std::strerror(errno))) {}
 
 const std::string SysCallFailed::ErrorMessage = ": system call failed";
 
