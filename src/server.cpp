@@ -47,6 +47,8 @@ Server::~Server() {}
 
 int Server::getServerFd() const { return server_fd_; }
 
+std::vector<ServerConfig> Server::getConfig() const { return config_; }
+
 void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
   // 該当するコンフィグを探す
   size_t tgt_index = 0;
@@ -73,14 +75,15 @@ void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
   // 暫定的にpathを設定
   root_path = "/tmp";
   relative_path = request.getUri();
+  (void)response;
   switch (request.getMethod()) {
-    case HttpMethod::GET:
+    case 1:  // HttpMethod::GET
       // GETリクエストの処理
       break;
-    case HttpMethod::POST:
+    case 2:  // HttpMethod::POST
       // POSTリクエストの処理
       break;
-    case HttpMethod::DELETE:
+    case 4:  // HttpMethod::DELETE
       // DELETEリクエストの処理
       break;
     default:
