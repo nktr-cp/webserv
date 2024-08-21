@@ -1,6 +1,7 @@
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -101,22 +102,22 @@ class InvalidArgument : public ExtraErrors {
   std::string ErrMsgWrapper(const std::string& arg);
 };
 
-//Alternative error handing method
+// Alternative error handing method
 template <typename T>
-class Result{
-  private:
-    T value;
-    bool error;
-    std::string msg;
+class Result {
+ private:
+  T value;
+  bool error;
+  std::string msg;
 
-  public:
-    Result(T value);
-    Result(const std::string& error_msg);
-	Result &operator=(const T &rhs);
+ public:
+  Result(T value);
+  Result(const std::string& error_msg);
+  Result& operator=(const T& rhs);
 
-	bool isOk() const;
-	T getValue() const;
-	std::string &getMsg();
+  bool isOk() const;
+  T getValue() const;
+  std::string& getMsg();
 };
 
 template <typename T>
