@@ -1,6 +1,7 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
+#include <cstring>
 #include <fstream>
 #include <map>
 #include <string>
