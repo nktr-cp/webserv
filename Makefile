@@ -1,6 +1,5 @@
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 CXX = c++
-
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 NAME = webserv
 
 GRAY		= \033[1;37m
@@ -30,10 +29,17 @@ SRCS =	main.cpp \
 		http_response.cpp
 ##############################################################################
 
-SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
-OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
+SRCS := $(addprefix $(SRCSDIR)/, $(SRCS))
+OBJS = $(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
 all: $(NAME)
+.PHONY: all
+
+linux:
+	docker build -t webserv .
+	docker run -p 8080:8080 --name webserv_container webserv || true
+	docker rm webserv_container
+.PHONY: linux
 
 $(NAME): $(OBJS)
 	@printf "$(YELLOW)Compiling $@... $(CONVERSION)$(RESET)"
@@ -48,11 +54,12 @@ $(OBJSDIR)/%.o: $(SRCSDIR)/%.cpp
 clean:
 	@$(RM) -r $(OBJSDIR)
 	@printf "$(RED)Removed $(NAME)'s object files$(RESET)\n"
+.PHONY: clean
 
 fclean: clean
 	@$(RM) $(NAME)
 	@printf "$(RED)Removed $(NAME)$(RESET)\n"
+.PHONY: fclean
 
 re: fclean all
-
-.PHONY: all 
+.PHONY: re

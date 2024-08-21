@@ -26,6 +26,7 @@ void Webserv::createServerSockets() {
 void Webserv::run() {
   createServerSockets();
 
+#ifdef __APPLE__
   kq_ = kqueue();
   if (kq_ == -1) {
     throw std::runtime_error("kqueue failed");
@@ -43,7 +44,7 @@ void Webserv::run() {
   events_.resize(kMaxEvents);
   buffer_.resize(kBufferSize);
 
-  // Event loop
+  // Event loop for kqueue
   while (true) {
     int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, NULL);
     if (nev < 0) {
@@ -67,6 +68,51 @@ void Webserv::run() {
       }
     }
   }
+#elif __linux__
+  epoll_fd_ = epoll_create1(0);
+  if (epoll_fd_ == -1) {
+    throw std::runtime_error("epoll_create1 failed");
+  }
+
+  // Register server sockets with epoll
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+  for (size_t i = 0; i < servers_.size(); i++) {
+    ev.data.fd = servers_[i].getServerFd();
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, servers_[i].getServerFd(), &ev) ==
+        -1) {
+      throw std::runtime_error("epoll_ctl add server failed");
+    }
+  }
+
+  events_.resize(kMaxEvents);
+  buffer_.resize(kBufferSize);
+
+  // Event loop for epoll
+  while (true) {
+    int nev = epoll_wait(epoll_fd_, &events_[0], kMaxEvents, -1);
+    if (nev < 0) {
+      throw std::runtime_error("epoll_wait failed");
+    }
+
+    for (int i = 0; i < nev; i++) {
+      int fd = events_[i].data.fd;
+
+      bool isServerSocket = false;
+      for (size_t i = 0; i < servers_.size(); i++) {
+        if (servers_[i].getServerFd() == fd) {
+          isServerSocket = true;
+          handleNewConnection(fd);
+          break;
+        }
+      }
+
+      if (!isServerSocket) {
+        handleClientData(fd);
+      }
+    }
+  }
+#endif
 }
 
 void Webserv::handleNewConnection(int server_fd) {
@@ -85,12 +131,22 @@ void Webserv::handleNewConnection(int server_fd) {
   int flags = fcntl(client_fd, F_GETFL, 0);
   fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 
+#ifdef __APPLE__
   struct kevent ev;
   EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
   if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
     close(client_fd);
     throw std::runtime_error("kevent add client failed");
   }
+#elif __linux__
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+  ev.data.fd = client_fd;
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+    close(client_fd);
+    throw std::runtime_error("epoll_ctl add client failed");
+  }
+#endif
 }
 
 void Webserv::handleClientData(int client_fd) {
