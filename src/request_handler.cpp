@@ -53,7 +53,7 @@ void RequestHandler::process() {
       handleStaticDelete();
       break;
     default:
-      response_->setStatus(HttpStatus::METHOD_NOT_ALLOWED);
+      response_->setStatus(METHOD_NOT_ALLOWED);
       break;
   }
 }
