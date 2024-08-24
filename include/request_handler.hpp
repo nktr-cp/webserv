@@ -1,5 +1,6 @@
 #pragma once
 
+#include "typedefs.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
 #include "location.hpp"
