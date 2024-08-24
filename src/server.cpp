@@ -62,33 +62,6 @@ void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
   if (tgt_index == config_.size()) {
     tgt_index = 0;
   }
-  std::string root_path;
-  std::string relative_path;
-  std::vector<Location> locations = config_[tgt_index].getLocations();
-  bool location_found = false;
-  for (size_t i = 0; i < locations.size(); i++) {
-    // TODO: Locationのマッチング
-  }
-  if (!location_found) {
-    // TODO: serverconfigのrootを使う
-    // TODO: rootが設定されていなければ404
-  }
-  // 暫定的にpathを設定
-  root_path = "/tmp";
-  relative_path = request.getUri();
-  (void)response;
-  switch (request.getMethod()) {
-    case 1:  // HttpMethod::GET
-      // GETリクエストの処理
-      break;
-    case 2:  // HttpMethod::POST
-      // POSTリクエストの処理
-      break;
-    case 4:  // HttpMethod::DELETE
-      // DELETEリクエストの処理
-      break;
-    default:
-      // 405 Method Not Allowed
-      break;
-  }
+  RequestHandler handler(request, response, config_[tgt_index]);
+  handler.process();
 }
