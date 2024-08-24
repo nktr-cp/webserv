@@ -43,13 +43,13 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 
 void RequestHandler::process() {
   switch (request_->getMethod()) {
-    case 1:  // HttpMethod::GET
+    case GET:
       handleStaticGet();
       break;
-    case 2:  // HttpMethod::POST
+    case POST:
       handleStaticPost();
       break;
-    case 4:  // HttpMethod::DELETE
+    case DELETE:
       handleStaticDelete();
       break;
     default:
@@ -62,8 +62,17 @@ void RequestHandler::handleStaticGet() {
   // rootPath_ + relativePath_ のファイルを読み、responseに書き込む
 }
 
+#include <fstream>
 void RequestHandler::handleStaticPost() {
   // rootPath_ + relativePath_ にファイルを保存し、responseにステータスを書き込む
+  std::string path = rootPath_ + relativePath_;
+  std::ofstream ofs(path);
+  if (!ofs) {
+    response_->setStatus(FORBIDDEN);
+    return;
+  }
+  ofs << request_->getBody();
+  response_->setStatus(OK);
 }
 
 void RequestHandler::handleStaticDelete() {
