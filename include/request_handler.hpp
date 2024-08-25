@@ -5,6 +5,7 @@
 #include "http_response.hpp"
 #include "location.hpp"
 #include "config.hpp"
+#include "utils.hpp"
 
 class RequestHandler {
 private:

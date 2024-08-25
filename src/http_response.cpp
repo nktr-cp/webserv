@@ -1,19 +1,21 @@
 #include "http_response.hpp"
 
-std::string to_string(HttpStatus status) {
-  switch (status) {
-    case OK:
-      return "200 OK";
-    case BAD_REQUEST:
-      return "400 Bad Request";
-    case NOT_FOUND:
-      return "404 Not Found";
-    case INTERNAL_SERVER_ERROR:
-      return "500 Internal Server Error";
-    default:
-      return "500 Internal Server Error";
+namespace Http {
+  std::string statusToString(HttpStatus status) {
+    switch (status) {
+      case OK:
+        return "200 OK";
+      case BAD_REQUEST:
+        return "400 Bad Request";
+      case NOT_FOUND:
+        return "404 Not Found";
+      case INTERNAL_SERVER_ERROR:
+        return "500 Internal Server Error";
+      default:
+        return "500 Internal Server Error";
+    }
   }
-}
+}  // namespace Http
 
 const std::string HttpResponse::kHttpVersion = "HTTP/1.1";
 
@@ -44,7 +46,7 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &src) {
 HttpResponse::~HttpResponse() {}
 
 void HttpResponse::setStatus(HttpStatus status) {
-  this->status_ = to_string(status);
+  this->status_ = Http::statusToString(status);
 }
 
 void HttpResponse::setHeader(const std::string &key,

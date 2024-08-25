@@ -5,7 +5,9 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-std::string to_string(HttpStatus status);
+namespace Http {
+  std::string statusToString(HttpStatus status);
+} // namespace Http
 
 // statusはデフォルトでOK
 class HttpResponse {

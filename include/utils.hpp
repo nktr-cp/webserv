@@ -4,13 +4,47 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <libgen.h>
+
+// Alternative error handing method
+template <typename T>
+class Result {
+ private:
+  T value;
+  bool error;
+  std::string msg;
+
+ public:
+  Result(T value);
+  Result(const std::string& error_msg);
+  Result& operator=(const T& rhs);
+
+  bool isOk() const;
+  T getValue() const;
+  std::string& getMsg();
+};
+
+template <typename T>
+Result<T> Ok(T value);
+
+template <typename T>
+Result<T> Ko(const std::string& msg);
 
 // util functions
 namespace ft {
-bool isNumber(const std::string& str);
-unsigned int stoui(const std::string& str, const unsigned int range[2]);
-std::string uitost(unsigned int n);
+  bool isNumber(const std::string& str);
+  unsigned int stoui(const std::string& str, const unsigned int range[2]);
+  std::string uitost(unsigned int n);
 }  // namespace ft
+
+namespace filemanip {
+  Result<bool> isFile(const std::string& path);
+  Result<bool> isDir(const std::string& path);
+  Result<bool> pathExists(const std::string& path);
+  Result<bool> isDeletable(const std::string& path);
+}
 
 // error class
 #include <cerrno>
@@ -101,30 +135,6 @@ class InvalidArgument : public ExtraErrors {
  private:
   std::string ErrMsgWrapper(const std::string& arg);
 };
-
-// Alternative error handing method
-template <typename T>
-class Result {
- private:
-  T value;
-  bool error;
-  std::string msg;
-
- public:
-  Result(T value);
-  Result(const std::string& error_msg);
-  Result& operator=(const T& rhs);
-
-  bool isOk() const;
-  T getValue() const;
-  std::string& getMsg();
-};
-
-template <typename T>
-Result<T> Ok(T value);
-
-template <typename T>
-Result<T> Ko(const std::string& msg);
 
 #include "result.tpp"
 
