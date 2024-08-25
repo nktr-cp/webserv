@@ -62,11 +62,10 @@ void RequestHandler::handleStaticGet() {
   // rootPath_ + relativePath_ のファイルを読み、responseに書き込む
 }
 
-#include <fstream>
 void RequestHandler::handleStaticPost() {
   // rootPath_ + relativePath_ にファイルを保存し、responseにステータスを書き込む
   std::string path = rootPath_ + relativePath_;
-  std::ofstream ofs(path);
+  std::ofstream ofs(path.c_str());
   if (!ofs) {
     response_->setStatus(FORBIDDEN);
     return;
