@@ -75,6 +75,38 @@ void RequestHandler::handleStaticPost() {
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleStaticDelete() {
-  // rootPath_ + relativePath_ のファイルを削除し、responseにステータスを書き込む
+void RequestHandler::handleStaticDelete() { //処理順が違う可能性あり、おそらくどうでもいい
+  std::string path = rootPath_ + relativePath_;
+  Result<bool> is_file = filemanip::pathExists(path);
+  if (!is_file.isOk()) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+  if (!is_file.getValue()) {
+    response_->setStatus(NOT_FOUND);
+    return;
+  }
+  Result<bool> is_dir = filemanip::isDir(path);
+  if (!is_dir.isOk()) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+  if (is_dir.getValue()) {
+    response_->setStatus(BAD_REQUEST);
+    return;
+  }
+  if (remove(path.c_str()) != 0) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+  Result<bool> is_deletable = filemanip::isDeletable(path);
+  if (!is_deletable.isOk()) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+  if (!is_deletable.getValue()) {
+    response_->setStatus(FORBIDDEN);
+    return;
+  }
+  response_->setStatus(OK);
 }
