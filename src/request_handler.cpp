@@ -1,16 +1,33 @@
 #include "request_handler.hpp"
 
 RequestHandler::RequestHandler()
-    : request_(NULL), response_(NULL), location_(NULL),
-      rootPath_(""), relativePath_("") {}
+    : request_(NULL),
+      response_(NULL),
+      // location_(NULL),
+      rootPath_(""),
+      relativePath_("") {}
 
-RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response, ServerConfig &config)
-    : request_(&request), response_(&response),
-      rootPath_(""), relativePath_("") {
+RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
+                               ServerConfig &config)
+    : request_(&request),
+      response_(&response),
+      rootPath_(""),
+      relativePath_("") {
   std::vector<Location> locations = config.getLocations();
   bool location_found = false;
   for (size_t i = 0; i < locations.size(); i++) {
     // TODO: Locationのマッチング
+    // `location /`の際のLocationのrootが空文字列になっている
+    if (locations[i].getRoot().empty() && request.getUri() == "/") {
+      location_ = locations[i];
+      location_found = true;
+      break;
+    }
+    if (locations[i].getRoot() == request.getUri()) {
+      location_ = locations[i];
+      location_found = true;
+      break;
+    }
   }
   if (!location_found) {
     // TODO: serverconfigのrootを使う
@@ -18,14 +35,15 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response, Ser
   }
   RequestHandler handler;
   // 暫定的にpathを設定
-  rootPath_ = "/tmp";
+  rootPath_ = "./";
   relativePath_ = request.getUri();
-  location_ = NULL;
 }
 
 RequestHandler::RequestHandler(const RequestHandler &src)
-    : request_(src.request_), response_(src.response_),
-      location_(src.location_), rootPath_(src.rootPath_),
+    : request_(src.request_),
+      response_(src.response_),
+      location_(src.location_),
+      rootPath_(src.rootPath_),
       relativePath_(src.relativePath_) {}
 
 RequestHandler::~RequestHandler() {}
@@ -58,12 +76,135 @@ void RequestHandler::process() {
   }
 }
 
+std::string RequestHandler::generateDirectoryListing(const std::string &path) {
+  DIR *dir;
+  struct dirent *entry;
+  struct stat file_stat;
+  std::stringstream html;
+
+  html << "<html><head><title>Index of " << relativePath_ << "</title></head>"
+       << "<body><h1>Index of " << relativePath_ << "</h1><hr><pre>";
+
+  dir = opendir(path.c_str());
+  if (dir == NULL) {
+    return "Error opening directory.";
+  }
+
+  while ((entry = readdir(dir)) != NULL) {
+    std::string filename = entry->d_name;
+    std::string fullpath = path + "/" + filename;
+
+    if (stat(fullpath.c_str(), &file_stat) == -1) {
+      continue;
+    }
+
+    html << "<a href=\"" << filename;
+    if (S_ISDIR(file_stat.st_mode)) {
+      html << "/";
+    }
+    html << "\">" << filename;
+    if (S_ISDIR(file_stat.st_mode)) {
+      html << "/";
+    }
+    html << "</a>";
+
+    // 整列のためのpadding
+    // TODO: うまく整列されてない
+    int padding = 50 - filename.length();
+    html << std::string(padding > 0 ? padding : 1, ' ');
+
+    char time_str[26];
+    strftime(time_str, sizeof(time_str), "%d-%b-%Y %H:%M",
+             localtime(&file_stat.st_mtime));
+    html << time_str << "    ";
+
+    if (S_ISDIR(file_stat.st_mode)) {
+      html << "   -";
+    } else {
+      html << std::setw(8) << file_stat.st_size;
+    }
+
+    html << "\n";
+  }
+
+  closedir(dir);
+
+  html << "</pre><hr></body></html>";
+  return html.str();
+}
+
+std::string RequestHandler::getMimeType(const std::string &path) {
+  std::string extension = path.substr(path.find_last_of(".") + 1);
+  if (extension == "html" || extension == "htm") return "text/html";
+  if (extension == "css") return "text/css";
+  if (extension == "js") return "application/javascript";
+  if (extension == "jpg" || extension == "jpeg") return "image/jpeg";
+  if (extension == "png") return "image/png";
+  if (extension == "gif") return "image/gif";
+  return "application/octet-stream";
+}
+
 void RequestHandler::handleStaticGet() {
   // rootPath_ + relativePath_ のファイルを読み、responseに書き込む
+  std::string path = rootPath_ + relativePath_;
+
+  Result<bool> fileExists = filemanip::pathExists(path);
+  if (!fileExists.isOk() || !fileExists.getValue()) {
+    response_->setStatus(NOT_FOUND);
+    return;
+  }
+
+  Result<bool> isDir = filemanip::isDir(path);
+  if (!isDir.isOk()) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+  if (isDir.getValue()) {
+    // MEMO:
+    // indexファイルは複数指定できるので、ここはstd::vector<std::string>のはず
+    std::string indexPath = path + "/" + location_.getIndex();
+    Result<bool> indexExists = filemanip::pathExists(indexPath);
+    // indexファイルが存在するか？
+    if (indexExists.isOk() && indexExists.getValue()) {
+      path = indexPath;
+    } else {
+      if (location_.isAutoIndex()) {
+        std::string listing = generateDirectoryListing(path);
+        response_->setBody(listing);
+        response_->setHeader("Content-Type", "text/html");
+        response_->setStatus(OK);
+        return;
+      } else {
+        response_->setStatus(FORBIDDEN);
+        return;
+      }
+    }
+  }
+
+  std::ifstream ifs(path.c_str());
+  if (!ifs) {
+    response_->setStatus(FORBIDDEN);
+    return;
+  }
+
+  std::stringstream buffer;
+  buffer << ifs.rdbuf();
+
+  if (ifs.fail() && !ifs.eof()) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+
+  std::string mimeType = getMimeType(path);
+
+  response_->setHeader("Content-Type", mimeType);
+  response_->setBody(buffer.str());
+  response_->setStatus(OK);
 }
 
 void RequestHandler::handleStaticPost() {
-  // rootPath_ + relativePath_ にファイルを保存し、responseにステータスを書き込む
+  // rootPath_ + relativePath_
+  // にファイルを保存し、responseにステータスを書き込む
   std::string path = rootPath_ + relativePath_;
   std::ofstream ofs(path.c_str());
   if (!ofs) {
@@ -74,7 +215,8 @@ void RequestHandler::handleStaticPost() {
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleStaticDelete() { //処理順が違う可能性あり、おそらくどうでもいい
+void RequestHandler::
+    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
