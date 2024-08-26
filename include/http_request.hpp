@@ -17,12 +17,12 @@ class HttpRequest {
   HttpMethod method_;
   std::string uri_;
   dict query_;
-  std::string host_name_;
-  std::string host_port_;
+  std::string hostName_;
+  std::string hostPort_;
   std::string version_;
   dict headers_;
   std::string body_;
-  size_t content_length_;
+  size_t contentLength_;
 
   const char* parseMethod(const char* req);
   const char* parseUri(const char* req);
@@ -49,14 +49,14 @@ class HttpRequest {
 
   class RequestException : public std::exception {
    private:
-    HttpStatus http_status_;
+    HttpStatus httpStatus_;
     const char* message_;
 
    public:
-    RequestException(HttpStatus http_status);
-    RequestException(HttpStatus http_status, const char* message);
+    RequestException(HttpStatus status);
+    RequestException(HttpStatus status, const char* message);
     const char* what() const throw();
-    HttpStatus get_status() const;
+    HttpStatus getStatus() const;
   };
   class BadRequestException : public RequestException {
    public:
