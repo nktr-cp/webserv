@@ -32,11 +32,11 @@ const char *HttpRequest::parseMethod(const char *req) {
 
 #include <iostream>
 const char *HttpRequest::parseUri(const char *req) {
-  this->content_length_ = 0;
+  this->contentLength_ = 0;
   // Parse URI
   std::size_t i = 0;
   for (; req[i] != ' ' && req[i] != '?'; i++) {
-    if (++this->content_length_ >= kMaxUriSize) {
+    if (++this->contentLength_ >= kMaxUriSize) {
       throw UriTooLongException();
     }
     if (req[i] < '!' || req[i] > '~') {
@@ -51,7 +51,7 @@ const char *HttpRequest::parseUri(const char *req) {
   // Parse query
   if (*req == '?') {
     req++;
-    if (++this->content_length_ >= kMaxUriSize) {
+    if (++this->contentLength_ >= kMaxUriSize) {
       throw UriTooLongException();
     }
     while (true) {
@@ -59,7 +59,7 @@ const char *HttpRequest::parseUri(const char *req) {
       std::string key;
       i = 0;
       for (; req[i] && (req[i] != '&' && req[i] != '=' && req[i] != ' '); i++) {
-        if (++this->content_length_ >= kMaxUriSize) {
+        if (++this->contentLength_ >= kMaxUriSize) {
           throw UriTooLongException();
         }
         if (req[i] < '!' || req[i] > '~') {
@@ -72,7 +72,7 @@ const char *HttpRequest::parseUri(const char *req) {
         req += i + 1;
         i = 0;
         for (; req[i] && (req[i] != '&' && req[i] != ' '); i++) {
-          if (++this->content_length_ >= kMaxUriSize) {
+          if (++this->contentLength_ >= kMaxUriSize) {
             throw UriTooLongException();
           }
           if (req[i] < '!' || req[i] > '~') {
@@ -85,7 +85,7 @@ const char *HttpRequest::parseUri(const char *req) {
       }
       req += i;
       if (*req == '&') {
-        if (++this->content_length_ >= kMaxUriSize) {
+        if (++this->contentLength_ >= kMaxUriSize) {
           throw UriTooLongException();
         }
         req++;
@@ -117,11 +117,11 @@ const char *HttpRequest::parseVersion(const char *req) {
 }
 
 const char *HttpRequest::parseHeader(const char *req) {
-  this->content_length_ = 0;
+  this->contentLength_ = 0;
   while (*req && req[0] != '\r') {
     size_t i = 0;
     for (; req[i] && req[i] != ':'; i++) {
-      if (++this->content_length_ >= kMaxHeaderSize) {
+      if (++this->contentLength_ >= kMaxHeaderSize) {
         throw RequestHeaderFieldsTooLargeException();
       }
     }
@@ -130,13 +130,13 @@ const char *HttpRequest::parseHeader(const char *req) {
     }
     std::string key = std::string(req, i);
     i += 2;  // Skip ": "
-    this->content_length_ += 2;
-    if (content_length_ >= kMaxHeaderSize) {
+    this->contentLength_ += 2;
+    if (contentLength_ >= kMaxHeaderSize) {
       throw RequestHeaderFieldsTooLargeException();
     }
     req += i;
     for (; req[i] && req[i] != '\r'; i++) {
-      if (++this->content_length_ >= kMaxHeaderSize) {
+      if (++this->contentLength_ >= kMaxHeaderSize) {
         throw RequestHeaderFieldsTooLargeException();
       }
     }
@@ -149,8 +149,8 @@ const char *HttpRequest::parseHeader(const char *req) {
       this->headers_[key] = std::string(req, i);
     }
     req += i + 2;  // Skip "\r\n"
-    this->content_length_ += 2;
-    if (content_length_ >= kMaxHeaderSize) {
+    this->contentLength_ += 2;
+    if (contentLength_ >= kMaxHeaderSize) {
       throw RequestHeaderFieldsTooLargeException();
     }
   }
@@ -173,11 +173,11 @@ HttpRequest::HttpRequest(const char *raw_request) {
           throw BadRequestException();
         }
       }
-      this->host_name_ = std::string(host, 0, i);
+      this->hostName_ = std::string(host, 0, i);
       if (i == host.size()) {
-        this->host_port_ = "80";
+        this->hostPort_ = "80";
       } else {
-        this->host_port_ = std::string(host, i + 1);
+        this->hostPort_ = std::string(host, i + 1);
       }
     } catch (std::out_of_range &e) {
       throw BadRequestException();
@@ -187,7 +187,7 @@ HttpRequest::HttpRequest(const char *raw_request) {
   } catch (RequestException &e) {
     throw e;
   }
-  this->content_length_ = 0;
+  this->contentLength_ = 0;
   if (!*raw_request) {
     this->body_ = "";
   } else if (raw_request[0] == '\r' && raw_request[1] == '\n') {
@@ -241,10 +241,10 @@ const std::string &HttpRequest::getQuery(const std::string &key) const {
   return this->query_.at(key);
 }
 const std::string &HttpRequest::getHostName() const {
-  return this->host_name_;
+  return this->hostName_;
 }
 const std::string &HttpRequest::getHostPort() const {
-  return this->host_port_;
+  return this->hostPort_;
 }
 const std::string &HttpRequest::getVersion() const { return this->version_; }
 const dict &HttpRequest::getHeader() const { return this->headers_; }
@@ -253,16 +253,16 @@ const std::string &HttpRequest::getHeader(const std::string &key) const {
 }
 const std::string &HttpRequest::getBody() const { return this->body_; }
 
-HttpRequest::RequestException::RequestException(HttpStatus http_status)
-    : http_status_(http_status), message_(NULL) {}
-HttpRequest::RequestException::RequestException(HttpStatus http_status,
+HttpRequest::RequestException::RequestException(HttpStatus status)
+    : httpStatus_(status), message_(NULL) {}
+HttpRequest::RequestException::RequestException(HttpStatus status,
                                                 const char *message)
-    : http_status_(http_status), message_(message) {}
+    : httpStatus_(status), message_(message) {}
 const char *HttpRequest::RequestException::what() const throw() {
   return this->message_;
 }
-HttpStatus HttpRequest::RequestException::get_status() const {
-  return this->http_status_;
+HttpStatus HttpRequest::RequestException::getStatus() const {
+  return this->httpStatus_;
 }
 
 HttpRequest::BadRequestException::BadRequestException()

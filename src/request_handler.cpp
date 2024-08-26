@@ -216,7 +216,7 @@ void RequestHandler::handleStaticPost() {
 }
 
 void RequestHandler::
-    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
+  handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
