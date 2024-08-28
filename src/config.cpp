@@ -66,6 +66,7 @@ void Config::parseLocation(ServerConfig *server) {
   token = tokenize(content_);
   if (token[0] != '/' || token[token.size() - 1] != '/')
     throw SyntaxError(token);
+  location.setName(token);
   token = tokenize(content_);
   if (token != "{") throw SyntaxError(token);
   while (true) {
@@ -207,7 +208,7 @@ void Config::parseIndex(Location *location) {
   std::string token;
 
   token = tokenize(content_);
-  location->setIndex(token);
+  location->addIndex(token);
   token = tokenize(content_);
   if (token != ";") throw SyntaxError(token);
 }
@@ -257,6 +258,13 @@ Config::Config(const std::string &filename) {
     }
   }
   this->parse();
+  //print locations
+  // for (size_t i = 0; i < this->server_configs_.size(); i++) {
+  //   std::vector<Location> locations = this->server_configs_[i].getLocations();
+  //   for (size_t j = 0; j < locations.size(); j++) {
+  //     locations[j].print();
+  //   }
+  // }
 }
 
 std::vector<ServerConfig> Config::getServerConfigs() const {
