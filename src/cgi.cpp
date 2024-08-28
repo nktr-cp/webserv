@@ -38,7 +38,7 @@ void cgiMaster::execute() {
     handleChildProcess();
   } else {
     handleParentProcess();
-    send(client_fd_, cgi_output_.c_str(), cgi_output_.length(), 0);//雑すぎる可能性
+    send(client_fd_, cgi_output_.c_str(), cgi_output_.length(), 0);//雑すぎる可能性、おそらく情報を追加する必要あり
   }
 }
 

@@ -12,6 +12,7 @@
 
 #include "config.hpp"
 #include "server.hpp"
+#include "cgi.hpp"
 
 class Webserv {
  private:

@@ -190,6 +190,12 @@ void Webserv::handleClientData(int client_fd) {
 }
 
 void Webserv::handleCGIRequest(const HttpRequest& request, int client_fd) {
+  (void)request;
+  (void)client_fd;
+  // cgiMaster cgi(request, client_fd);
+  // cgi.execute();
+
+
   // 1. Identify the CGI script from the request
   //    - Extract the script path from the request (e.g., from the URI).
   //    - Verify that the script exists and has the proper permissions to be executed.

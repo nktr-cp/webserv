@@ -13,7 +13,6 @@ private:
   void createPipes();
   void handleChildProcess();
   void handleParentProcess();
-  void sendResponse();
 
   const HttpRequest& request_;
   int client_fd_;
