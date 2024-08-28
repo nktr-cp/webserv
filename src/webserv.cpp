@@ -163,23 +163,64 @@ void Webserv::handleClientData(int client_fd) {
   HttpRequest request = HttpRequest(buffer_.data());
 
   // 該当するサーバーを探してリクエストを処理
-  HttpResponse response;
-  std::string port = request.getHostPort();
-  bool server_found = false;
-  for (size_t i = 0; i < servers_.size(); i++) {
-    if (servers_[i].getConfig().front().getPort() == port) {
-      server_found = true;
-      Server server = servers_[i];
-      server.handleRequest(request, response);
-      break;
+  // if the request is for CGI }
+    // handleCGIRequest(request, response);
+  // }
+  // else {
+    HttpResponse response;
+    std::string port = request.getHostPort();
+    bool server_found = false;
+    for (size_t i = 0; i < servers_.size(); i++) {
+      if (servers_[i].getConfig().front().getPort() == port) {
+        server_found = true;
+        Server server = servers_[i];
+        server.handleRequest(request, response);
+        break;
+      }
     }
-  }
-  if (!server_found) {
-    response.setStatus(NOT_FOUND);
-  }
+    if (!server_found) {
+      response.setStatus(NOT_FOUND);
+    }
+  // }
 
   // レスポンスをクライアントに送信
   std::string res_str = response.encode();
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
+}
+
+void Webserv::handleCGIRequest(const HttpRequest& request, int client_fd) {
+  // 1. Identify the CGI script from the request
+  //    - Extract the script path from the request (e.g., from the URI).
+  //    - Verify that the script exists and has the proper permissions to be executed.
+
+  // 2. Set up environment variables for the CGI script
+  //    - Populate environment variables based on the HTTP request headers (e.g., `REQUEST_METHOD`, `QUERY_STRING`, `CONTENT_TYPE`, etc.).
+  //    - Set server-specific environment variables (e.g., `SERVER_SOFTWARE`, `SERVER_NAME`, etc.).
+  //    - Ensure `PATH_INFO` and `SCRIPT_FILENAME` point to the CGI script and its directory.
+
+  // 3. Create pipes for communication between the parent process and the CGI script
+  //    - Set up a pipe for the CGI script to receive input (if applicable).
+  //    - Set up a pipe for the CGI script to send output back to the parent process.
+
+  // 4. Fork the process to execute the CGI script
+  //    - In the child process:
+  //      a. Redirect standard input, output, and possibly error to the appropriate pipes.
+  //      b. Use `execve()` to run the CGI script.
+  //      c. Handle any errors in executing the script.
+  //    - In the parent process:
+  //      a. Close unnecessary pipe file descriptors.
+  //      b. Write request body data to the CGI process via the input pipe, if required.
+
+  // 5. Read the CGI script's output from the pipe
+  //    - Capture the CGI script's output, which typically starts with HTTP headers, followed by the response body.
+  //    - Process the CGI output headers and create a corresponding `HttpResponse`.
+
+  // 6. Send the CGI response back to the client
+  //    - Encode the processed CGI response into a string.
+  //    - Use `send()` to transmit the response back to the client through `client_fd`.
+
+  // 7. Clean up resources
+  //    - Close any remaining open file descriptors.
+  //    - Handle process termination for the CGI script, ensuring no zombie processes are left.
 }

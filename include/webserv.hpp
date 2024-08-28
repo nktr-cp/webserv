@@ -37,6 +37,7 @@ class Webserv {
 
   void handleNewConnection(int server_fd);
   void handleClientData(int client_fd);
+  void handleCGIRequest(const HttpRequest& request, int client_fd);
 
   void run();
 };
