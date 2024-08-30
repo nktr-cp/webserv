@@ -15,11 +15,11 @@
 
 class RequestHandler {
  private:
-  HttpRequest   *request_;
-  HttpResponse  *response_;
-  Location      *location_;  // 静的リクエストでは使用しないはずなので、未実装
-  std::string   rootPath_;
-  std::string   relativePath_;
+  HttpRequest     *request_;
+  HttpResponse    *response_;
+  const Location  *location_;
+  std::string     rootPath_;
+  std::string     relativePath_;
 
   std::string getMimeType(const std::string &path);
   std::string generateDirectoryListing(const std::string &path);
