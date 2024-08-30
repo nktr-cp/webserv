@@ -46,7 +46,12 @@ HttpResponse::~HttpResponse() {}
 
 HttpStatus HttpResponse::getStatus() const { return this->status_; }
 
-void HttpResponse::setStatus(HttpStatus status) { this->status_ = status; }
+void HttpResponse::setStatus(HttpStatus status) {
+  this->status_ = status;
+  if (status != OK) {
+    this->body_ = Http::statusToString(status);
+  }
+}
 
 void HttpResponse::setHeader(const std::string &key, const std::string &value) {
   this->headers_[key] = value;
@@ -65,10 +70,8 @@ std::string HttpResponse::encode() const {
        it != this->headers_.end(); ++it) {
     oss << it->first << ": " << it->second << "\r\n";
   }
-  if (this->body_ != "") {
-    oss << "Content-Length: " << ft::uitost(this->body_.length()) << "\r\n";
-    oss << "\r\n";
-    oss << this->body_;
-  }
+  oss << "Content-Length: " << ft::uitost(this->body_.length()) << "\r\n";
+  oss << "\r\n";
+  oss << this->body_;
   return oss.str();
 }
