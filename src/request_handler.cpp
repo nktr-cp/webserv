@@ -14,7 +14,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       rootPath_(""),
       relativePath_("") {
   const std::vector<Location>& locations = config.getLocations();
-  size_t max_count = -1;
+  int max_count = -1;
   const Location *location = NULL;
   std::string uri = request.getUri();
   if (uri[uri.size() - 1] != '/') {
@@ -22,17 +22,17 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
   }
   for (size_t i = 0; i < locations.size(); i++) {
     const std::string& path = locations[i].getName();
-    for (size_t cur = 0; cur < path.size() && cur <= uri.size(); cur++) {
+    for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++) {
       if (path[cur] != uri[cur]) {
         break;
       }
-      if (path[i] == '/' && cur > max_count) {
+      if (path[i] == '/' && (int) cur > max_count) {
         max_count = cur;
         location = &locations[i];
       }
     }
   }
-  if (!location) {
+  if (location == NULL) {
     response_->setStatus(NOT_FOUND);
     return ;
   } else {
@@ -63,6 +63,9 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 }
 
 void RequestHandler::process() {
+  if (response_->getStatus() != OK) {
+    return;
+  }
   switch (request_->getMethod()) {
     case GET:
       handleStaticGet();

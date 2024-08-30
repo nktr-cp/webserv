@@ -1,6 +1,8 @@
 #pragma once
 #include <map>
 #include <string>
+#include <vector>
+#include <sstream>
 
 #include "typedefs.hpp"
 #include "utils.hpp"
@@ -9,11 +11,11 @@ namespace Http {
   std::string statusToString(HttpStatus status);
 } // namespace Http
 
-// statusはデフォルトでOK
+// デフォルトのstatusはOK
 class HttpResponse {
  private:
   static const std::string kHttpVersion;
-  std::string status_;
+  HttpStatus status_;
   dict headers_;
   std::string body_;
 
@@ -24,6 +26,7 @@ class HttpResponse {
   HttpResponse &operator=(const HttpResponse &src);
   ~HttpResponse();
 
+  HttpStatus getStatus() const;
   void setStatus(HttpStatus status);
   void setHeader(const std::string &key, const std::string &value);
   void setHeader(const dict &headers);
