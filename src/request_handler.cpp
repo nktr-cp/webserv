@@ -13,13 +13,16 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       response_(&response),
       rootPath_(""),
       relativePath_("") {
-  std::vector<Location> locations = config.getLocations();
+  const std::vector<Location>& locations = config.getLocations();
   size_t max_count = -1;
-  Location *location = NULL;
+  const Location *location = NULL;
+  std::string uri = request.getUri();
+  if (uri[uri.size() - 1] != '/') {
+    uri += "/";
+  }
   for (size_t i = 0; i < locations.size(); i++) {
-    const std::string& path = locations[i].getRoot();
-    const std::string& uri = request.getUri();
-    for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++) {
+    const std::string& path = locations[i].getName();
+    for (size_t cur = 0; cur < path.size() && cur <= uri.size(); cur++) {
       if (path[cur] != uri[cur]) {
         break;
       }
@@ -29,8 +32,9 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       }
     }
   }
-  if (!this->location_) {
+  if (!location) {
     response_->setStatus(NOT_FOUND);
+    return ;
   } else {
     location_ = location;
     rootPath_ = location->getRoot();
