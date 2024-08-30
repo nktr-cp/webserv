@@ -50,7 +50,7 @@ void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
     this->setHeader("Content-Type", "text/html");
-    this->body_ = Http::statusToString(status);
+    this->body_ = "<h1>" + Http::statusToString(status) + "</h1>";
   }
 }
 
