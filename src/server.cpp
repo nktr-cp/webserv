@@ -42,7 +42,8 @@ void Server::createSocket() {
   fcntl(server_fd_, F_SETFL, flags | O_NONBLOCK);
 }
 
-Server::Server(std::vector<ServerConfig> config) : config_(config) {}
+Server::Server(std::vector<ServerConfig> config)
+    : config_(config), sessionManager_(SessionManager()) {}
 
 Server::~Server() {}
 
@@ -64,4 +65,5 @@ void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
   }
   RequestHandler handler(request, response, config_[tgt_index]);
   handler.process();
+  sessionManager_.setSessionInfo(request, response);
 }
