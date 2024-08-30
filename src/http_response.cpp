@@ -48,7 +48,8 @@ HttpStatus HttpResponse::getStatus() const { return this->status_; }
 
 void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
-  if (status != OK) {
+  if (body_.empty()) {
+    this->setHeader("Content-Type", "text/html");
     this->body_ = Http::statusToString(status);
   }
 }
