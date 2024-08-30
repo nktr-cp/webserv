@@ -3,7 +3,7 @@
 RequestHandler::RequestHandler()
     : request_(NULL),
       response_(NULL),
-      // location_(NULL),
+      location_(NULL),
       rootPath_(""),
       relativePath_("") {}
 
@@ -14,29 +14,28 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       rootPath_(""),
       relativePath_("") {
   std::vector<Location> locations = config.getLocations();
-  bool location_found = false;
+  size_t max_count = -1;
+  Location *location = NULL;
   for (size_t i = 0; i < locations.size(); i++) {
-    // TODO: Locationのマッチング
-    // `location /`の際のLocationのrootが空文字列になっている
-    if (locations[i].getRoot().empty() && request.getUri() == "/") {
-      location_ = locations[i];
-      location_found = true;
-      break;
-    }
-    if (locations[i].getRoot() == request.getUri()) {
-      location_ = locations[i];
-      location_found = true;
-      break;
+    const std::string& path = locations[i].getRoot();
+    const std::string& uri = request.getUri();
+    for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++) {
+      if (path[cur] != uri[cur]) {
+        break;
+      }
+      if (path[i] == '/' && cur > max_count) {
+        max_count = cur;
+        location = &locations[i];
+      }
     }
   }
-  if (!location_found) {
-    // TODO: serverconfigのrootを使う
-    // TODO: rootが設定されていなければ404
+  if (!this->location_) {
+    response_->setStatus(NOT_FOUND);
+  } else {
+    location_ = location;
+    rootPath_ = location->getRoot();
+    relativePath_ = request.getUri().substr(max_count);
   }
-  RequestHandler handler;
-  // 暫定的にpathを設定
-  rootPath_ = "./";
-  relativePath_ = request.getUri();
 }
 
 RequestHandler::RequestHandler(const RequestHandler &src)
@@ -162,13 +161,13 @@ void RequestHandler::handleStaticGet() {
   if (isDir.getValue()) {
     // MEMO:
     // indexファイルは複数指定できるので、ここはstd::vector<std::string>のはず
-    std::string indexPath = path + "/" + location_.getIndex()[0];// コンパイルを通すため[0]を暫定的に追加
+    std::string indexPath = path + "/" + location_->getIndex()[0];// コンパイルを通すため[0]を暫定的に追加
     Result<bool> indexExists = filemanip::pathExists(indexPath);
     // indexファイルが存在するか？
     if (indexExists.isOk() && indexExists.getValue()) {
       path = indexPath;
     } else {
-      if (location_.isAutoIndex()) {
+      if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
         response_->setBody(listing);
         response_->setHeader("Content-Type", "text/html");

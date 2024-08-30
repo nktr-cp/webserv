@@ -17,7 +17,7 @@ class RequestHandler {
  private:
   HttpRequest   *request_;
   HttpResponse  *response_;
-  Location      location_;  // 静的リクエストでは使用しないはずなので、未実装
+  Location      *location_;  // 静的リクエストでは使用しないはずなので、未実装
   std::string   rootPath_;
   std::string   relativePath_;
 
