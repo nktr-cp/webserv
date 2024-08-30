@@ -169,7 +169,7 @@ void Webserv::handleClientData(int client_fd) {
   for (size_t i = 0; i < servers_.size(); i++) {
     if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
-      Server server = servers_[i];
+      Server &server = servers_[i];
       server.handleRequest(request, response);
       break;
     }
