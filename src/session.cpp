@@ -34,7 +34,7 @@ std::string SessionManager::generateSessionId() {
       "abcdefghijklmnopqrstuvwxyz";
 
   std::string id;
-  for (int i = 0; i < kSessionIdLength; ++i) {
+  for (size_t i = 0; i < kSessionIdLength; ++i) {
     id += sessionIdChars[std::rand() % (sizeof(sessionIdChars) - 1)];
   }
   return id;

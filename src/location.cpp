@@ -7,7 +7,8 @@ Location::Location()
       index_(),
       extensions_(),
       upoadPath_(""),
-      redirect_("") {}
+      redirect_(""),
+      cgiPath_("") {}
 
 void Location::addMethod(const HttpMethod method) {
   this->methods_ |= static_cast<short>(method);

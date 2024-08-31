@@ -9,6 +9,7 @@
 #include "location.hpp"
 #include "typedefs.hpp"
 #include "utils.hpp"
+#include "http_request.hpp"
 
 #define WIHTESPACE " \t\n"
 #define SPECIAL_LETTERS "{};"

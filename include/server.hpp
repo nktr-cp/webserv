@@ -32,6 +32,8 @@ class Server {
 
   int getServerFd() const;
   std::vector<ServerConfig> getConfig() const;
+
+  const Location* requestLocationMatch(const HttpRequest& request) const;
 };
 
 #endif  // SERVER_HPP_

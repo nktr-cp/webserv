@@ -17,7 +17,6 @@
 class Webserv {
  private:
   std::vector<Server> servers_;
-  void parseConfig(const std::string &configFile);
 
   void createServerSockets();
 
@@ -38,7 +37,7 @@ class Webserv {
 
   void handleNewConnection(int server_fd);
   void handleClientData(int client_fd);
-  void handleCGIRequest(const HttpRequest& request, int client_fd);
+  void handleCGIRequest(const HttpRequest& request, int client_fd, const Location *location);
 
   void run();
 };
