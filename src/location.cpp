@@ -6,7 +6,7 @@ Location::Location()
       autoindex_(false),
       index_(),
       extensions_(),
-      upload_path_(""),
+      upoadPath_(""),
       redirect_("") {}
 
 void Location::addMethod(const HttpMethod method) {
@@ -25,12 +25,16 @@ void Location::addExtension(const std::string& extension) {
   this->extensions_.push_back(extension);
 }
 
-void Location::setUploadPath(const std::string& upload_path) {
-  this->upload_path_ = upload_path;
+void Location::setUploadPath(const std::string& uploadPath) {
+  this->upoadPath_ = uploadPath;
 }
 
 void Location::setRedirect(const std::string& redirect) {
   this->redirect_ = redirect;
+}
+
+void Location::setCgiPath(const std::string& cgiPath) {
+  this->cgiPath_ = cgiPath;
 }
 
 short Location::getMethods() const { return this->methods_; }
@@ -48,10 +52,20 @@ const std::vector<std::string>& Location::getExtensions() const {
 }
 
 const std::string& Location::getUploadPath() const {
-  return this->upload_path_;
+  return this->upoadPath_;
 }
 
-const std::string& Location::getRedirect() const { return this->redirect_; }
+const std::string& Location::getRedirect() const {
+  return this->redirect_;
+}
+
+const std::string& Location::getCgiPath() const {
+  return this->cgiPath_;
+}
+
+bool Location::isCgi() const {
+  return !this->cgiPath_.empty();
+}
 
 void Location::print() {
   std::cout << "Name: " << this->name_ << std::endl;
@@ -68,6 +82,8 @@ void Location::print() {
     std::cout << this->extensions_[i] << " ";
   }
   std::cout << std::endl;
-  std::cout << "Upload path: " << this->upload_path_ << std::endl;
+  std::cout << "Upload path: " << this->upoadPath_ << std::endl;
   std::cout << "Redirect: " << this->redirect_ << std::endl;
+  std::cout << "Is CGI: " << this->isCgi() << std::endl;
+  std::cout << "Cgi path: " << this->cgiPath_ << std::endl;
 }

@@ -1,18 +1,18 @@
 #include "config.hpp"
 
 ServerConfig::ServerConfig()
-    : host_(""), port_(""), server_name_(""), max_body_size_(MAX_BODY_SIZE) {}
+    : host_(""), port_(""), serverName_(""), maxBodySize_(MAX_BODY_SIZE) {}
 
 void ServerConfig::setHost(const std::string& host) { this->host_ = host; }
 
 void ServerConfig::setPort(const std::string& port) { this->port_ = port; }
 
-void ServerConfig::setServerName(const std::string& server_name) {
-  this->server_name_ = server_name;
+void ServerConfig::setServerName(const std::string& serverName) {
+  this->serverName_ = serverName;
 }
 
-void ServerConfig::setMaxBodySize(int max_body_size) {
-  this->max_body_size_ = max_body_size;
+void ServerConfig::setMaxBodySize(int maxBodySize) {
+  this->maxBodySize_ = maxBodySize;
 }
 
 void ServerConfig::addLocation(const Location& location) {
@@ -37,7 +37,7 @@ const std::string& ServerConfig::getHost() const { return this->host_; }
 const std::string& ServerConfig::getPort() const { return this->port_; }
 
 const std::string& ServerConfig::getServerName() const {
-  return this->server_name_;
+  return this->serverName_;
 }
 
-int ServerConfig::getMaxBodySize() const { return this->max_body_size_; }
+int ServerConfig::getMaxBodySize() const { return this->maxBodySize_; }
