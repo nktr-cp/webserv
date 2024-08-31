@@ -1,12 +1,14 @@
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
-#include <cstring>
-#include <iostream>
-#include <string>
+#include <libgen.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <libgen.h>
+
+#include <cstring>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 // Alternative error handing method
 template <typename T>
@@ -34,17 +36,23 @@ Result<T> Ko(const std::string& msg);
 
 // util functions
 namespace ft {
-  bool isNumber(const std::string& str);
-  unsigned int stoui(const std::string& str, const unsigned int range[2]);
-  std::string uitost(unsigned int n);
+bool isNumber(const std::string& str);
+unsigned int stoui(const std::string& str, const unsigned int range[2]);
+std::string uitost(unsigned int n);
+template <typename T>
+std::string to_string(T value) {
+  std::ostringstream os;
+  os << value;
+  return os.str();
+}
 }  // namespace ft
 
 namespace filemanip {
-  Result<bool> isFile(const std::string& path);
-  Result<bool> isDir(const std::string& path);
-  Result<bool> pathExists(const std::string& path);
-  Result<bool> isDeletable(const std::string& path);
-}
+Result<bool> isFile(const std::string& path);
+Result<bool> isDir(const std::string& path);
+Result<bool> pathExists(const std::string& path);
+Result<bool> isDeletable(const std::string& path);
+}  // namespace filemanip
 
 // error class
 #include <cerrno>
