@@ -208,16 +208,21 @@ void RequestHandler::handleStaticGet() {
     return;
   }
   if (isDir.getValue()) {
-    // MEMO:
-    // indexファイルは複数指定できるので、ここはstd::vector<std::string>のはず
-    std::string indexPath =
-        path + "/" +
-        location_->getIndex()[0];  // コンパイルを通すため[0]を暫定的に追加
-    Result<bool> indexExists = filemanip::pathExists(indexPath);
-    // indexファイルが存在するか？
-    if (indexExists.isOk() && indexExists.getValue()) {
-      path = indexPath;
-    } else {
+    // Use vector of index files
+    const std::vector<std::string> &indexFiles = location_->getIndex();
+    bool indexFound = false;
+    for (std::vector<std::string>::const_iterator it = indexFiles.begin();
+         it != indexFiles.end(); ++it) {
+      std::string indexPath = path + "/" + *it;
+      Result<bool> indexExists = filemanip::pathExists(indexPath);
+      if (indexExists.isOk() && indexExists.getValue()) {
+        path = indexPath;
+        indexFound = true;
+        break;
+      }
+    }
+
+    if (!indexFound) {
       if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
         response_->setBody(listing);

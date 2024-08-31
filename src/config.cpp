@@ -10,7 +10,7 @@ bool Config::isDirective(const std::string &token) {
       token == EXTENSIONS_DIRECTIVE || token == UPLOAD_PATH_DIRECTIVE ||
       token == REDIRECT_DIRECTIVE)
     return true;
-  return false;//最低の書き方、setを使おうとしたがクラッシュを直せなかったので暫定
+  return false;  // 最低の書き方、setを使おうとしたがクラッシュを直せなかったので暫定
 }
 
 static std::string tokenize(const std::string &content) {
@@ -37,8 +37,7 @@ void Config::parse() {
 
   while (true) {
     token = tokenize(content_);
-    if (token.empty())
-      break;
+    if (token.empty()) break;
     if (token == "server")
       this->parseServer();
     else
@@ -51,8 +50,7 @@ void Config::parseServer() {
   ServerConfig server_config = ServerConfig();
 
   token = tokenize(content_);
-  if (token != "{")
-    throw SyntaxError(token);
+  if (token != "{") throw SyntaxError(token);
   while (true) {
     token = tokenize(content_);
     if (token == ERROR_PAGE_DIRECTIVE)
@@ -70,8 +68,7 @@ void Config::parseServer() {
     else
       break;
   }
-  if (token != "}")
-    throw SyntaxError(token);
+  if (token != "}") throw SyntaxError(token);
   this->serverConfigs_.push_back(server_config);
 }
 
@@ -84,8 +81,7 @@ void Config::parseLocation(ServerConfig *server) {
     throw SyntaxError(token);
   location.setName(token);
   token = tokenize(content_);
-  if (token != "{")
-    throw SyntaxError(token);
+  if (token != "{") throw SyntaxError(token);
   while (true) {
     token = tokenize(content_);
     if (token == METHODS_DIRECTIVE)
@@ -107,8 +103,7 @@ void Config::parseLocation(ServerConfig *server) {
     else
       break;
   }
-  if (token != "}")
-    throw SyntaxError(token);
+  if (token != "}") throw SyntaxError(token);
   server->addLocation(location);
 }
 
@@ -128,8 +123,7 @@ void Config::parseError(ServerConfig *server) {
   token = tokenize(content_);
   server->addError(code, token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseMaxBody(ServerConfig *server) {
@@ -147,8 +141,7 @@ void Config::parseMaxBody(ServerConfig *server) {
   }
   server->setMaxBodySize(max_body);
   token = tokenize(content_);
-  if (token != ";") 
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseHost(ServerConfig *server) {
@@ -157,8 +150,7 @@ void Config::parseHost(ServerConfig *server) {
   token = tokenize(content_);
   server->setHost(token);
   token = tokenize(content_);
-  if (token != ";") 
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parsePortNumber(ServerConfig *server) {
@@ -175,8 +167,7 @@ void Config::parsePortNumber(ServerConfig *server) {
   }
   server->setPort(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseServerName(ServerConfig *server) {
@@ -185,8 +176,7 @@ void Config::parseServerName(ServerConfig *server) {
   token = tokenize(content_);
   server->setServerName(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseMethods(Location *location) {
@@ -212,8 +202,7 @@ void Config::parseRoot(Location *location) {
   token = tokenize(content_);
   location->setRoot(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseAutoIndex(Location *location) {
@@ -227,8 +216,7 @@ void Config::parseAutoIndex(Location *location) {
   else
     throw SyntaxError(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseIndex(Location *location) {
@@ -236,10 +224,8 @@ void Config::parseIndex(Location *location) {
 
   while (true) {
     token = tokenize(content_);
-    if (token == ";")
-      break;
-    if (isDirective(token))
-      throw SyntaxError(token);
+    if (token == ";") break;
+    if (isDirective(token)) throw SyntaxError(token);
     location->addIndex(token);
   }
 }
@@ -250,8 +236,7 @@ void Config::parseExtensions(Location *location) {
   token = tokenize(content_);
   location->addExtension(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseUploadPath(Location *location) {
@@ -260,8 +245,7 @@ void Config::parseUploadPath(Location *location) {
   token = tokenize(content_);
   location->setUploadPath(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseRedirect(Location *location) {
@@ -270,8 +254,7 @@ void Config::parseRedirect(Location *location) {
   token = tokenize(content_);
   location->setRedirect(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 void Config::parseCgiPath(Location *location) {
@@ -280,8 +263,7 @@ void Config::parseCgiPath(Location *location) {
   token = tokenize(content_);
   location->setCgiPath(token);
   token = tokenize(content_);
-  if (token != ";")
-    throw SyntaxError(token);
+  if (token != ";") throw SyntaxError(token);
 }
 
 Config::Config(const std::string &filename) {
@@ -303,12 +285,12 @@ Config::Config(const std::string &filename) {
   }
   this->parse();
   // print locations
-  for (size_t i = 0; i < this->serverConfigs_.size(); i++) {
-    std::vector<Location> locations = this->serverConfigs_[i].getLocations();
-    for (size_t j = 0; j < locations.size(); j++) {
-      locations[j].print();
-    }
-  }
+  // for (size_t i = 0; i < this->serverConfigs_.size(); i++) {
+  //   std::vector<Location> locations = this->serverConfigs_[i].getLocations();
+  //   for (size_t j = 0; j < locations.size(); j++) {
+  //     locations[j].print();
+  //   }
+  // }
 }
 
 std::vector<ServerConfig> Config::getServerConfigs() const {
