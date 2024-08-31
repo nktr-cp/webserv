@@ -47,40 +47,36 @@ std::string uitost(unsigned int n) {
 }  // namespace ft
 
 namespace filemanip {
-  Result<bool> isFile(const std::string& path) {
-    struct stat buf;
-    if (stat(path.c_str(), &buf) != 0)
-      return Ko<bool>(strerror(errno));
-    return Ok<bool>(S_ISREG(buf.st_mode));
-  }
+Result<bool> isFile(const std::string& path) {
+  struct stat buf;
+  if (stat(path.c_str(), &buf) != 0) return Ko<bool>(strerror(errno));
+  return Ok<bool>(S_ISREG(buf.st_mode));
+}
 
-  Result<bool> isDir(const std::string& path) {
-    struct stat buf;
-    if (stat(path.c_str(), &buf) != 0)
-      return Ko<bool>(strerror(errno));
-    return Ok<bool>(S_ISDIR(buf.st_mode));
-  }
+Result<bool> isDir(const std::string& path) {
+  struct stat buf;
+  if (stat(path.c_str(), &buf) != 0) return Ko<bool>(strerror(errno));
+  return Ok<bool>(S_ISDIR(buf.st_mode));
+}
 
-  Result<bool> pathExists(const std::string& path) {
-    struct stat buf;
-    if (stat(path.c_str(), &buf) == 0)
-      return Ok<bool>(true);
-    if (errno == ENOENT)
-      return Ok<bool>(false);
+Result<bool> pathExists(const std::string& path) {
+  struct stat buf;
+  if (stat(path.c_str(), &buf) == 0) return Ok<bool>(true);
+  if (errno == ENOENT) return Ok<bool>(false);
+  return Ko<bool>(strerror(errno));
+}
+
+Result<bool> isDeletable(const std::string& path) {
+  struct stat buf;
+  std::string path_copy = path;
+  std::string dir_name = dirname(&path_copy[0]);
+  if (stat(dir_name.c_str(), &buf) != 0) {
     return Ko<bool>(strerror(errno));
   }
-
-  Result<bool> isDeletable(const std::string& path) {
-    struct stat buf;
-    std::string path_copy = path;
-    std::string dir_name = dirname(&path_copy[0]);
-    if (stat(dir_name.c_str(), &buf) != 0) {
-      return Ko<bool>(strerror(errno));
-    }
-    if (access(dir_name.c_str(), W_OK | X_OK) != 0) {
-      return Ko<bool>(strerror(errno));
-    }
-    return Ok<bool>(true);
+  if (access(dir_name.c_str(), W_OK | X_OK) != 0) {
+    return Ko<bool>(strerror(errno));
   }
+  return Ok<bool>(true);
+}
 
 }  // namespace filemanip

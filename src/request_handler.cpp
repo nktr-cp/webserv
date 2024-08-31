@@ -90,18 +90,6 @@ FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
                      bool d)
     : name(n), modTime(m), size(s), isDirectory(d) {}
 
-struct FileEntryCompare {
-  bool operator()(const FileEntry &lhs, const FileEntry &rhs) const {
-    if (lhs.isDirectory && !rhs.isDirectory) {
-      return true;
-    }
-    if (!lhs.isDirectory && rhs.isDirectory) {
-      return false;
-    }
-    return lhs.name < rhs.name;
-  }
-};
-
 std::string RequestHandler::generateDirectoryListing(const std::string &path) {
   DIR *dir;
   struct dirent *entry;
@@ -134,7 +122,14 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
 
   closedir(dir);
 
-  std::sort(entries.begin(), entries.end(), FileEntryCompare());
+  // sort entries based on their names
+  for (size_t i = 0; i + 1 < entries.size(); i++) {
+    for (size_t j = i + 1; j < entries.size(); j++) {
+      if (entries[i].name > entries[j].name) {
+        std::swap(entries[i], entries[j]);
+      }
+    }
+  }
 
   html
       << "<!DOCTYPE html>\n"
@@ -175,7 +170,7 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
          << (it->isDirectory ? "/" : "") << "</a></td>\n"
          << "            <td>" << it->modTime << "</td>\n"
          << "            <td>"
-         << (it->isDirectory ? "-" : std::to_string(it->size)) << "</td>\n"
+         << (it->isDirectory ? "-" : ft::to_string(it->size)) << "</td>\n"
          << "        </tr>\n";
   }
 
