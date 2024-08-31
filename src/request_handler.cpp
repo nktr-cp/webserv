@@ -13,7 +13,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       response_(&response),
       rootPath_(""),
       relativePath_("") {
-  const std::vector<Location>& locations = config.getLocations();
+  const std::vector<Location> &locations = config.getLocations();
   int max_count = -1;
   const Location *location = NULL;
   std::string uri = request.getUri();
@@ -21,12 +21,12 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
     uri += "/";
   }
   for (size_t i = 0; i < locations.size(); i++) {
-    const std::string& path = locations[i].getName();
+    const std::string &path = locations[i].getName();
     for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++) {
       if (path[cur] != uri[cur]) {
         break;
       }
-      if (path[i] == '/' && (int) cur > max_count) {
+      if (path[i] == '/' && (int)cur > max_count) {
         max_count = cur;
         location = &locations[i];
       }
@@ -34,7 +34,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
   }
   if (location == NULL) {
     response_->setStatus(NOT_FOUND);
-    return ;
+    return;
   } else {
     location_ = location;
     rootPath_ = location->getRoot();
@@ -86,14 +86,28 @@ void RequestHandler::process() {
   }
 }
 
+FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
+                     bool d)
+    : name(n), modTime(m), size(s), isDirectory(d) {}
+
+struct FileEntryCompare {
+  bool operator()(const FileEntry &lhs, const FileEntry &rhs) const {
+    if (lhs.isDirectory && !rhs.isDirectory) {
+      return true;
+    }
+    if (!lhs.isDirectory && rhs.isDirectory) {
+      return false;
+    }
+    return lhs.name < rhs.name;
+  }
+};
+
 std::string RequestHandler::generateDirectoryListing(const std::string &path) {
   DIR *dir;
   struct dirent *entry;
   struct stat file_stat;
   std::stringstream html;
-
-  html << "<html><head><title>Index of " << relativePath_ << "</title></head>"
-       << "<body><h1>Index of " << relativePath_ << "</h1><hr><pre>";
+  std::vector<FileEntry> entries;
 
   dir = opendir(path.c_str());
   if (dir == NULL) {
@@ -108,38 +122,67 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
       continue;
     }
 
-    html << "<a href=\"" << filename;
-    if (S_ISDIR(file_stat.st_mode)) {
-      html << "/";
-    }
-    html << "\">" << filename;
-    if (S_ISDIR(file_stat.st_mode)) {
-      html << "/";
-    }
-    html << "</a>";
-
-    // 整列のためのpadding
-    // TODO: うまく整列されてない
-    int padding = 50 - filename.length();
-    html << std::string(padding > 0 ? padding : 1, ' ');
-
     char time_str[26];
     strftime(time_str, sizeof(time_str), "%d-%b-%Y %H:%M",
              localtime(&file_stat.st_mtime));
-    html << time_str << "    ";
 
-    if (S_ISDIR(file_stat.st_mode)) {
-      html << "   -";
-    } else {
-      html << std::setw(8) << file_stat.st_size;
-    }
-
-    html << "\n";
+    entries.push_back(
+        FileEntry(filename, std::string(time_str),
+                  S_ISDIR(file_stat.st_mode) ? -1 : file_stat.st_size,
+                  S_ISDIR(file_stat.st_mode)));
   }
 
   closedir(dir);
 
-  html << "</pre><hr></body></html>";
+  std::sort(entries.begin(), entries.end(), FileEntryCompare());
+
+  html
+      << "<!DOCTYPE html>\n"
+      << "<html lang=\"en\">\n"
+      << "<head>\n"
+      << "    <meta charset=\"UTF-8\">\n"
+      << "    <meta name=\"viewport\" content=\"width=device-width, "
+         "initial-scale=1.0\">\n"
+      << "    <title>Index of " << relativePath_ << "</title>\n"
+      << "    <style>\n"
+      << "        body { font-family: Arial, sans-serif; margin: 20px; }\n"
+      << "        h1 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }\n"
+      << "        table { border-collapse: collapse; width: 100%; }\n"
+      << "        th, td { text-align: left; padding: 8px; }\n"
+      << "        tr:nth-child(even) { background-color: #f2f2f2; }\n"
+      << "    </style>\n"
+      << "</head>\n"
+      << "<body>\n"
+      << "    <h1>Index of " << relativePath_ << "</h1>\n"
+      << "    <table>\n"
+      << "        <tr>\n"
+      << "            <th>Name</th>\n"
+      << "            <th>Last modified</th>\n"
+      << "            <th>Size</th>\n"
+      << "        </tr>\n";
+
+  html << "        <tr>\n"
+       << "            <td><a href=\"../\">../</a></td>\n"
+       << "            <td></td>\n"
+       << "            <td></td>\n"
+       << "        </tr>\n";
+
+  for (std::vector<FileEntry>::const_iterator it = entries.begin();
+       it != entries.end(); ++it) {
+    html << "        <tr>\n"
+         << "            <td><a href=\"" << it->name
+         << (it->isDirectory ? "/" : "") << "\">" << it->name
+         << (it->isDirectory ? "/" : "") << "</a></td>\n"
+         << "            <td>" << it->modTime << "</td>\n"
+         << "            <td>"
+         << (it->isDirectory ? "-" : std::to_string(it->size)) << "</td>\n"
+         << "        </tr>\n";
+  }
+
+  html << "    </table>\n"
+       << "</body>\n"
+       << "</html>";
+
   return html.str();
 }
 
@@ -172,7 +215,9 @@ void RequestHandler::handleStaticGet() {
   if (isDir.getValue()) {
     // MEMO:
     // indexファイルは複数指定できるので、ここはstd::vector<std::string>のはず
-    std::string indexPath = path + "/" + location_->getIndex()[0];// コンパイルを通すため[0]を暫定的に追加
+    std::string indexPath =
+        path + "/" +
+        location_->getIndex()[0];  // コンパイルを通すため[0]を暫定的に追加
     Result<bool> indexExists = filemanip::pathExists(indexPath);
     // indexファイルが存在するか？
     if (indexExists.isOk() && indexExists.getValue()) {
@@ -226,7 +271,7 @@ void RequestHandler::handleStaticPost() {
 }
 
 void RequestHandler::
-  handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
+    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
