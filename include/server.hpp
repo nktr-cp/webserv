@@ -14,10 +14,12 @@
 #include "http_request.hpp"
 #include "http_response.hpp"
 #include "request_handler.hpp"
+#include "session.hpp"
 
 class Server {
  private:
   std::vector<ServerConfig> config_;
+  SessionManager sessionManager_;
   int server_fd_;
   struct sockaddr_in address_;
 

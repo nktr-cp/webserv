@@ -163,25 +163,20 @@ void Webserv::handleClientData(int client_fd) {
   HttpRequest request = HttpRequest(buffer_.data());
 
   // 該当するサーバーを探してリクエストを処理
-  // if the request is for CGI }
-    // handleCGIRequest(request, response);
-  // }
-  // else {
-    HttpResponse response;
-    std::string port = request.getHostPort();
-    bool server_found = false;
-    for (size_t i = 0; i < servers_.size(); i++) {
-      if (servers_[i].getConfig().front().getPort() == port) {
-        server_found = true;
-        Server server = servers_[i];
-        server.handleRequest(request, response);
-        break;
-      }
+  HttpResponse response;
+  std::string port = request.getHostPort();
+  bool server_found = false;
+  for (size_t i = 0; i < servers_.size(); i++) {
+    if (servers_[i].getConfig().front().getPort() == port) {
+      server_found = true;
+      Server &server = servers_[i];
+      server.handleRequest(request, response);
+      break;
     }
-    if (!server_found) {
-      response.setStatus(NOT_FOUND);
-    }
-  // }
+  }
+  if (!server_found) {
+    response.setStatus(NOT_FOUND);
+  }
 
   // レスポンスをクライアントに送信
   std::string res_str = response.encode();

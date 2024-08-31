@@ -23,6 +23,7 @@
 #define METHODS_DIRECTIVE "method"
 #define ROOT_DIRECTORY_DIRECTIVE "root"
 #define AUTOINDEX_DIRECTIVE "autoindex"
+#define CGI_DIRECTIVE "cgi_path"
 #define INDEX_DIRECTIVE "index"
 #define EXTENSIONS_DIRECTIVE "extension"
 #define UPLOAD_PATH_DIRECTIVE "uploadpath"
@@ -34,8 +35,8 @@ class ServerConfig {
   std::vector<Location> locations_;
   std::string host_;
   std::string port_;
-  std::string server_name_;
-  int max_body_size_;
+  std::string serverName_;
+  int maxBodySize_;
 
  public:
   ServerConfig();
@@ -52,7 +53,6 @@ class ServerConfig {
   const std::string &getPort() const;
   const std::map<HttpStatus, std::string> &getErrors() const;
   const std::vector<Location> &getLocations() const;
-  const int &getSockfd() const;
   const std::string &getServerName() const;
   int getMaxBodySize() const;
 };
@@ -60,7 +60,8 @@ class ServerConfig {
 class Config {
  private:
   std::string content_;
-  std::vector<ServerConfig> server_configs_;
+  std::vector<ServerConfig> serverConfigs_;
+  bool isDirective(const std::string &token);
 
   void parse();
   void parseServer();
@@ -78,6 +79,7 @@ class Config {
   void parseExtensions(Location *location);
   void parseUploadPath(Location *location);
   void parseRedirect(Location *location);
+  void parseCgiPath(Location *location);
 
  public:
   Config(const std::string &filename);

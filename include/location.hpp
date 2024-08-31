@@ -12,8 +12,9 @@ class Location {
   bool autoindex_;
   std::vector<std::string> index_;
   std::vector<std::string> extensions_;
-  std::string upload_path_;
+  std::string upoadPath_;
   std::string redirect_;
+  std::string cgiPath_;
 
  public:
   // setter, getter
@@ -26,6 +27,7 @@ class Location {
   void addExtension(const std::string&);
   void setUploadPath(const std::string&);
   void setRedirect(const std::string&);
+  void setCgiPath(const std::string&);
 
   short getMethods() const;
   const std::string& getName() const;
@@ -35,6 +37,8 @@ class Location {
   const std::vector<std::string>& getExtensions() const;
   const std::string& getUploadPath() const;
   const std::string& getRedirect() const;
+  const std::string& getCgiPath() const;
+  bool isCgi() const;
   // debug
   void print();
 };
