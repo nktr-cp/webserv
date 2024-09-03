@@ -13,6 +13,10 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       response_(&response),
       rootPath_(""),
       relativePath_("") {
+  if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size()) {
+    response_->setStatus(PAYLOAD_TOO_LARGE);
+    return;
+  }
   const std::vector<Location> &locations = config.getLocations();
   int max_count = -1;
   const Location *location = NULL;
@@ -65,6 +69,10 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 void RequestHandler::process() {
   if (response_->getStatus() != OK) {
     response_->setHeader("Content-Type", "text/html");
+    return;
+  }
+  if (location_->isCgi()) {
+    handleCGIRequest();
     return;
   }
   switch (request_->getMethod()) {
@@ -305,4 +313,9 @@ void RequestHandler::
     return;
   }
   response_->setStatus(OK);
+}
+
+void RequestHandler::handleCGIRequest() {
+  // CGIの処理を行う
+  // エラー処理について：setStatusにエラーコードを入れてreturnすれば、勝手にエラーページを返します
 }
