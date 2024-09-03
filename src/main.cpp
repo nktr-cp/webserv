@@ -1,20 +1,24 @@
 #include <iostream>
 
-#include "config.hpp"
-#include "server.hpp"
+#include "webserv.hpp"
 
-int main(int ac, char** av) {
+int main(int ac, char **av) {
   if (ac > 2) {
-    std::cerr << "Usage: " << av[0] << " <config_file>" << std::endl;
+    std::cerr << "Usage: " << av[0] << " [config_file]" << std::endl;
     return 1;
   }
 
-  std::string config_file = ac == 2 ? av[1] : "default.conf";
+  std::string configFile;
+  if (ac == 1) {
+    configFile = "config/default.conf";
+  } else {
+    configFile = av[1];
+  }
 
   try {
-    ServerManager webserv(config_file);
+    Webserv webserv(configFile);
     webserv.run();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }

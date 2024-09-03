@@ -1,6 +1,5 @@
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 CXX = c++
-
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 NAME = webserv
 
 GRAY		= \033[1;37m
@@ -18,35 +17,31 @@ SRCSDIR = src
 OBJSDIR = obj
 
 ##############################################################################
-MAIN =		main.cpp
-# MAIN :=		$(addprefix main/, $(MAIN))
-
-UTILS =		utils.cpp
-UTILS :=		$(addprefix utils/, $(UTILS))
-
-LOCATION =	location.cpp
-LOCATION :=		$(addprefix location/, $(LOCATION))
-
-CONFIG =	config.cpp \
-			server_config.cpp
-CONFIG :=		$(addprefix config/, $(CONFIG))
-
-SERVER =	server.cpp \
-			server_manager.cpp
-SERVER :=		$(addprefix server/, $(SERVER))
-
-CLIENT =	client.cpp
-CLIENT :=		$(addprefix client/, $(CLIENT))
-
-# REQUEST =	request.cpp
-# REQUEST :=		$(addprefix request/, $(REQUEST))
+SRCS =	main.cpp \
+		webserv.cpp \
+		server.cpp \
+		server_config.cpp \
+		location.cpp \
+		config.cpp \
+		errors.cpp \
+		utils.cpp \
+		http_request.cpp \
+		http_response.cpp \
+		request_handler.cpp \
+		session.cpp
 ##############################################################################
 
-SRCS =	$(MAIN) $(UTILS) $(LOCATION) $(CONFIG) $(SERVER) $(CLIENT)
-SRCS :=	$(addprefix $(SRCSDIR)/, $(SRCS))
-OBJS =	$(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
+SRCS := $(addprefix $(SRCSDIR)/, $(SRCS))
+OBJS = $(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 
 all: $(NAME)
+.PHONY: all
+
+linux:
+	docker build -t webserv .
+	docker run -p 8080:8080 --name webserv_container webserv || true
+	docker rm webserv_container
+.PHONY: linux
 
 $(NAME): $(OBJS)
 	@printf "$(YELLOW)Compiling $@... $(CONVERSION)$(RESET)"
@@ -61,13 +56,12 @@ $(OBJSDIR)/%.o: $(SRCSDIR)/%.cpp
 clean:
 	@$(RM) -r $(OBJSDIR)
 	@printf "$(RED)Removed $(NAME)'s object files$(RESET)\n"
+.PHONY: clean
 
 fclean: clean
 	@$(RM) $(NAME)
 	@printf "$(RED)Removed $(NAME)$(RESET)\n"
+.PHONY: fclean
 
 re: fclean all
-
-bonus:
-
-.PHONY: all clean fclean re bonus
+.PHONY: re
