@@ -171,10 +171,9 @@ void Webserv::handleClientData(int client_fd) {
       server_found = true;
       Server &server = servers_[i];
       const Location* location = server.requestLocationMatch(request);
-      if (location == NULL) {
-        response.setStatus(BAD_REQUEST);//絶対におかしい
-      } else if (location->isCgi()) {
+      if (location != NULL && location->isCgi()) {
         handleCGIRequest(request, client_fd, location);
+        return;
       } else {
         server.handleRequest(request, response);
       }

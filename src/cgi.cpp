@@ -19,7 +19,19 @@ void cgiMaster::setEnvironment() {
   env_["SERVER_SOFTWARE"] = "webserv";
   env_["SERVER_NAME"] = request_.getHostName();
   env_["SERVER_PORT"] = request_.getHostPort();
-  // TODO: set other environment variables
+  
+  env_["REDIRECT_STATUS"] = "200";
+  env_["GATEWAY_INTERFACE"] = "CGI/1.1";
+  env_["SERVER_PROTOCOL"] = "HTTP/1.1";
+  env_["SCRIPT_FILENAME"] = cgiPath;
+  env_["SCRIPT_NAME"] = cgiPath;
+  env_["CONTENT_LENGTH"] = std::to_string(request_.getBody().length());
+  env_["CONTENT_TYPE"] = request_.getHeader("Content-Type");
+  env_["PATH_INFO"] = request_.getUri();
+  env_["PATH_TRANSLATED"] = request_.getUri();
+  // env_["QUERY_STRING"] = request_.getQuery();//クエリストリングをそのまま？
+
+
 }
 
 void cgiMaster::createPipes() {
