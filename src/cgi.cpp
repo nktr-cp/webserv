@@ -26,7 +26,7 @@ void cgiMaster::setEnvironment() {
   env_["SCRIPT_FILENAME"] = cgiPath;
   env_["SCRIPT_NAME"] = cgiPath;
   env_["CONTENT_LENGTH"] = std::to_string(request_.getBody().length());
-  env_["CONTENT_TYPE"] = request_.getHeader("Content-Type");
+  // env_["CONTENT_TYPE"] = request_.getHeader("content-type");
   env_["PATH_INFO"] = request_.getUri();
   env_["PATH_TRANSLATED"] = request_.getUri();
   // env_["QUERY_STRING"] = request_.getQuery();//クエリストリングをそのまま？
@@ -41,6 +41,7 @@ void cgiMaster::createPipes() {
 }
 
 void cgiMaster::execute() {
+  //print request
   pid_ = fork();
   if (pid_ == -1) {
     throw SysCallFailed();
@@ -83,10 +84,14 @@ void cgiMaster::handleChildProcess() {
   dup2(outpipe_[1], STDOUT_FILENO);
   close(inpipe_[0]);
   close(outpipe_[1]);
+  char cwd[PATH_MAX];
+  if (getcwd(cwd, sizeof(cwd)) == NULL)
+    throw SysCallFailed();
+  std::string fullCgiPath = std::string(cwd) + cgiPath;
 
   //envvar
   char **envp = envToCArray();
-  execve(cgiPath.c_str(), NULL, envp);
+  execve(fullCgiPath.c_str(), NULL, envp);
   throw SysCallFailed();
 }
 
@@ -100,6 +105,7 @@ void cgiMaster::handleParentProcess() {
   char buffer[BUFFER_SIZE];
   ssize_t n;
   while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0) {
+    std::cerr << buffer << std::endl;
     output_.append(buffer, n);
   }
   close(outpipe_[0]);
