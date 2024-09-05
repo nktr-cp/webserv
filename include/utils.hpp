@@ -54,14 +54,13 @@ Result<bool> isDeletable(const std::string& path);
 namespace http {
   std::string statusToString(HttpStatus status);
   std::string methodToString(HttpMethod method);
-  class responseStatusException : public std::exception {
+  class responseStatusException : public std::runtime_error {
    private:
     HttpStatus status_;
 
    public:
     responseStatusException(HttpStatus status);
     HttpStatus getStatus() const;
-    const char *what() const throw();
   };
 } // namespace http
 

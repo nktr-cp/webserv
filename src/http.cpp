@@ -45,12 +45,7 @@ std::string statusToString(HttpStatus status) {
 }
 
 responseStatusException::responseStatusException(HttpStatus status)
-    : status_(status) {}
-
-const char *responseStatusException::what() const throw() {
-  return (std::to_string(this->status_) + " " + statusToString(this->status_))
-      .c_str();
-}
+    : std::runtime_error(std::to_string(status) + " " + statusToString(status)), status_(status) {}
 
 HttpStatus responseStatusException::getStatus() const {
   return this->status_;
