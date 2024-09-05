@@ -51,7 +51,13 @@ void cgiMaster::execute() {
     handleChildProcess();
   } else {
     handleParentProcess();
-    send(clientFd_, output_.c_str(), output_.length(), 0);//雑すぎる可能性、おそらく情報を追加する必要あり
+    std::string header = "HTTP/1.1 200 OK\r\n";
+    header += "Content-Length: " + std::to_string(output_.length()) + "\r\n";
+    header += "Content-Type: text/html\r\n";
+    header += "\r\n";
+    send(clientFd_, header.c_str(), header.length(), 0);
+    send(clientFd_, output_.c_str(), output_.length(), 0);
+    std::cerr << "CGI response: " << output_ << std::endl;
   }
 }
 
@@ -105,7 +111,6 @@ void cgiMaster::handleParentProcess() {
   char buffer[BUFFER_SIZE];
   ssize_t n;
   while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0) {
-    std::cerr << buffer << std::endl;
     output_.append(buffer, n);
   }
   close(outpipe_[0]);

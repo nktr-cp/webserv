@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# Output the HTTP headers
-print("Content-Type: text/html")
-print("Status: 200 OK")
-print("")
-
 # Output the HTML content
 print("<html>")
 print("<head><title>Simple CGI Script</title></head>")
