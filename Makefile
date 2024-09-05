@@ -30,6 +30,7 @@ SRCS =	main.cpp \
 		request_handler.cpp \
 		session.cpp \
 		cgi.cpp \
+		http.cpp \
 ##############################################################################
 
 SRCS := $(addprefix $(SRCSDIR)/, $(SRCS))

@@ -194,7 +194,7 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
          << (it->isDirectory ? "/" : "") << "</a></td>\n"
          << "            <td>" << it->modTime << "</td>\n"
          << "            <td>"
-         << (it->isDirectory ? "-" : ft::to_string(it->size)) << "</td>\n"
+         << (it->isDirectory ? "-" : std::to_string(it->size)) << "</td>\n"
          << "        </tr>\n";
   }
 

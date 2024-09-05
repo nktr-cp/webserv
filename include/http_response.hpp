@@ -7,19 +7,6 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-namespace http {
-  std::string statusToString(HttpStatus status);
-  class responseStatusException : public std::exception {
-   private:
-    HttpStatus status_;
-
-   public:
-    responseStatusException(HttpStatus status);
-    HttpStatus getStatus() const;
-    const char *what() const throw();
-  };
-} // namespace http
-
 // デフォルトのstatusはOK
 class HttpResponse {
  private:

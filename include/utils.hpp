@@ -10,6 +10,8 @@
 #include <sstream>
 #include <string>
 
+#include "typedefs.hpp"
+
 // Alternative error handing method
 template <typename T>
 class Result {
@@ -39,12 +41,6 @@ namespace ft {
 bool isNumber(const std::string& str);
 unsigned int stoui(const std::string& str, const unsigned int range[2]);
 std::string uitost(unsigned int n);
-template <typename T>
-std::string to_string(T value) {
-  std::ostringstream os;
-  os << value;
-  return os.str();
-}
 }  // namespace ft
 
 namespace filemanip {
@@ -53,6 +49,21 @@ Result<bool> isDir(const std::string& path);
 Result<bool> pathExists(const std::string& path);
 Result<bool> isDeletable(const std::string& path);
 }  // namespace filemanip
+
+// http
+namespace http {
+  std::string statusToString(HttpStatus status);
+  std::string methodToString(HttpMethod method);
+  class responseStatusException : public std::exception {
+   private:
+    HttpStatus status_;
+
+   public:
+    responseStatusException(HttpStatus status);
+    HttpStatus getStatus() const;
+    const char *what() const throw();
+  };
+} // namespace http
 
 // error class
 #include <cerrno>

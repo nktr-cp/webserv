@@ -5,8 +5,10 @@
 
 #include <map>
 #include <vector>
+#include <string>
+#include <iostream>
 
-#include "utils.hpp"
+#include "typedefs.hpp"
 
 #define HTTP_VERSION "HTTP/1.1"
 

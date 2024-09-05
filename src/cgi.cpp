@@ -15,7 +15,7 @@ cgiMaster::~cgiMaster() {
 }
 
 void cgiMaster::setEnvironment() {//TODO:ない可能性があるものの確認
-  env_["REQUEST_METHOD"] = request_->getMethod();
+  env_["REQUEST_METHOD"] = http::methodToString(request_->getMethod());
   env_["REQUEST_URI"] = request_->getUri();
   env_["SERVER_SOFTWARE"] = "webserv";
   env_["SERVER_NAME"] = request_->getHostName();

@@ -1,4 +1,5 @@
 #include "http_request.hpp"
+#include "http_response.hpp"
 #include <iostream>
 #include <string>
 
@@ -18,7 +19,7 @@ int main() {
         
         std::cout << request.getBody() << std::endl;
     }
-    catch (const HttpRequest::RequestException &e) {
+    catch (const http::responseStatusException &e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }

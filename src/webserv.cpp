@@ -158,12 +158,19 @@ void Webserv::handleClientData(int client_fd) {
     close(client_fd);
     return;
   }
+  HttpRequest request;
+  HttpResponse response;
 
   // リクエストをパース
-  HttpRequest request = HttpRequest(buffer_.data());
+  try {
+    request = HttpRequest(buffer_.data());
+  } catch (const http::responseStatusException &e) {
+    response.setStatus(e.getStatus());
+    sendResponse(client_fd, response);
+    return;
+  }
 
   // 該当するサーバーを探してリクエストを処理
-  HttpResponse response;
   std::string port = request.getHostPort();
   bool server_found = false;
   for (size_t i = 0; i < servers_.size(); i++) {
@@ -177,8 +184,11 @@ void Webserv::handleClientData(int client_fd) {
   if (!server_found) {
     response.setStatus(NOT_FOUND);
   }
-
   // レスポンスをクライアントに送信
+  sendResponse(client_fd, response);
+}
+
+void Webserv::sendResponse(const int client_fd, const HttpResponse &response) {
   std::string res_str = response.encode();
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
