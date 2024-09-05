@@ -3,6 +3,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <climits>
 
 #include "server.hpp"
 #include "trie_node.hpp"
@@ -231,7 +232,7 @@ TrieNode<HttpMethod> initialize_method_trie() {
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
 const size_t HttpRequest::kMaxHeaderSize = 8192;
-const size_t HttpRequest::kMaxPayloadSize = 8192;
+const size_t HttpRequest::kMaxPayloadSize = INT_MAX;
 const size_t HttpRequest::kMaxUriSize = 1024;
 
 HttpMethod HttpRequest::getMethod() const { return this->method_; }
