@@ -93,7 +93,7 @@ void cgiMaster::handleChildProcess() {
   //envvar
   char **envp = envToCArray();
   execve(fullCgiPath.c_str(), NULL, envp);
-  throw SysCallFailed("execve");
+  std::exit(EXIT_FAILURE);
 }
 
 void cgiMaster::handleParentProcess() {
@@ -105,8 +105,25 @@ void cgiMaster::handleParentProcess() {
 
   char buffer[BUFFER_SIZE];
   ssize_t n;
-  while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0) {
-    output_.append(buffer, n);
+  fd_set read_fds;
+  struct timeval timeout;
+  
+  FD_ZERO(&read_fds);
+  FD_SET(outpipe_[0], &read_fds);
+  timeout.tv_sec = GATEWAY_TIMEOUT_SECONDS;
+  timeout.tv_usec = 0;
+
+  int ret = select(outpipe_[0] + 1, &read_fds, NULL, NULL, &timeout);
+  if (ret == -1) {
+    throw SysCallFailed("select");
+  } else if (ret == 0) {
+    signal(SIGCHLD, SIG_IGN);
+    throw http::responseStatusException(GATEWAY_TIMEOUT);
+  }
+
+  if (FD_ISSET(outpipe_[0], &read_fds)) {
+    while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
+      output_.append(buffer, n);
   }
   close(outpipe_[0]);
   int status;

@@ -68,6 +68,7 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 }
 void RequestHandler::process() {
   if (location_->isRedirect()) {
+    std::cerr << "Handling: redirect" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", location_->getRedirect());
     return;
@@ -101,8 +102,8 @@ void RequestHandler::process() {
     response_->setHeader("Content-Type", "text/html");
   }
   std::string errorpage = config_->getErrorPage(response_->getStatus());
-  std::cerr << "Error page: " << errorpage << std::endl;
   if (!errorpage.empty()) {
+    std::cerr << response_->getStatus() << " error: redirecting" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
@@ -341,5 +342,4 @@ void RequestHandler::handleCGIRequest() {
     response_->setStatus(e.getStatus());
     return;
   }
-
 }

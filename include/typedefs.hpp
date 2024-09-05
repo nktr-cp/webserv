@@ -10,6 +10,8 @@
 
 #define HTTP_VERSION "HTTP/1.1"
 
+#define GATEWAY_TIMEOUT_SECONDS 10
+
 enum SocketType { kServer, kClient };
 
 typedef std::map<std::string, std::string> dict;
