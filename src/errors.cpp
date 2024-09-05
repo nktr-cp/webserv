@@ -21,7 +21,7 @@ SysCallFailed::SysCallFailed(const std::string &scname)
 const std::string SysCallFailed::ErrorMessage = strerror(errno);
 
 std::string SysCallFailed::ErrMsgWrapper(const std::string& arg) {
-  return this->ProgramNamePrefix + arg + this->ErrorMessage;
+  return this->ProgramNamePrefix + arg + std::string(": ") + this->ErrorMessage;
 }
 
 ArgOutOfRange::ArgOutOfRange(const std::string& arg)

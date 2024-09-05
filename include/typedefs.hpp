@@ -79,12 +79,14 @@ enum HttpStatus {
 enum HttpMethod {
   NONE = 0,
   GET = 1,
-  POST = 2,
-  DELETE = 4,
-  HEAD = 8,
-  OPTIONS = 16,
-  PUT = 32,
-  CONNECT = 64,
+  HEAD = 2,
+  POST = 4,
+  PUT = 8,
+  DELETE = 16,
+  CONNECT = 32,
+  OPTIONS = 64,
+  TRACE = 128,
+  PATCH = 256,
 };
 
 #endif  // TYPEDEFS_HPP

@@ -205,13 +205,15 @@ HttpRequest::~HttpRequest() {}
 
 TrieNode<HttpMethod> initialize_method_trie() {
   TrieNode<HttpMethod> root;
-  root.insert("GET", GET);
-  root.insert("HEAD", HEAD);
-  root.insert("POST", POST);
-  root.insert("OPTIONS", OPTIONS);
-  root.insert("PUT", PUT);
-  root.insert("DELETE", DELETE);
-  root.insert("CONNECT", CONNECT);
+  root.insert(http::methodToString(GET).c_str(), GET);
+  root.insert(http::methodToString(HEAD).c_str(), HEAD);
+  root.insert(http::methodToString(POST).c_str(), POST);
+  root.insert(http::methodToString(PUT).c_str(), PUT);
+  root.insert(http::methodToString(DELETE).c_str(), DELETE);
+  root.insert(http::methodToString(CONNECT).c_str(), CONNECT);
+  root.insert(http::methodToString(OPTIONS).c_str(), OPTIONS);
+  root.insert(http::methodToString(TRACE).c_str(), TRACE);
+  root.insert(http::methodToString(PATCH).c_str(), PATCH);
   return root;
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
