@@ -82,6 +82,7 @@ enum HttpMethod {
   HEAD = 8,
   OPTIONS = 16,
   PUT = 32,
+  CONNECT = 64,
 };
 
 #endif  // TYPEDEFS_HPP

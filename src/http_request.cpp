@@ -228,6 +228,7 @@ TrieNode<HttpMethod> initialize_method_trie() {
   root.insert("OPTIONS", OPTIONS);
   root.insert("PUT", PUT);
   root.insert("DELETE", DELETE);
+  root.insert("CONNECT", CONNECT);
   return root;
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
