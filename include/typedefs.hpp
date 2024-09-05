@@ -8,6 +8,8 @@
 
 #include "utils.hpp"
 
+#define HTTP_VERSION "HTTP/1.1"
+
 enum SocketType { kServer, kClient };
 
 typedef std::map<std::string, std::string> dict;
@@ -75,9 +77,9 @@ enum HttpMethod {
   GET = 1,
   POST = 2,
   DELETE = 4,
-  HEAD,
-  OPTIONS,
-  PUT,
+  HEAD = 8,
+  OPTIONS = 16,
+  PUT = 32,
 };
 
 #endif  // TYPEDEFS_HPP

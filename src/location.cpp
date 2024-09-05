@@ -68,6 +68,10 @@ bool Location::isCgi() const {
   return !this->cgiPath_.empty();
 }
 
+bool Location::isRedirect() const {
+  return !this->redirect_.empty();
+}
+
 void Location::print() {
   std::cout << "Name: " << this->name_ << std::endl;
   std::cout << "Methods: " << this->methods_ << std::endl;

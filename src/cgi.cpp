@@ -1,7 +1,8 @@
 #include "webserv.hpp"
 #include "cgi.hpp"
 
-cgiMaster::cgiMaster(const HttpRequest& request, int client_fd, const Location *location) : request_(request), clientFd_(client_fd), cgiPath(location->getCgiPath()) {
+cgiMaster::cgiMaster(const HttpRequest *request, HttpResponse *response, const Location *location)
+    : request_(request), response_(response), cgiPath(location->getCgiPath()) {
   setEnvironment();
   createPipes();
 }
@@ -13,55 +14,49 @@ cgiMaster::~cgiMaster() {
   close(outpipe_[1]);
 }
 
-void cgiMaster::setEnvironment() {
-  env_["REQUEST_METHOD"] = request_.getMethod();
-  env_["REQUEST_URI"] = request_.getUri();
+void cgiMaster::setEnvironment() {//TODO:ない可能性があるものの確認
+  env_["REQUEST_METHOD"] = request_->getMethod();
+  env_["REQUEST_URI"] = request_->getUri();
   env_["SERVER_SOFTWARE"] = "webserv";
-  env_["SERVER_NAME"] = request_.getHostName();
-  env_["SERVER_PORT"] = request_.getHostPort();
-  
-  env_["REDIRECT_STATUS"] = "200";
+  env_["SERVER_NAME"] = request_->getHostName();
+  env_["SERVER_PORT"] = request_->getHostPort();
   env_["GATEWAY_INTERFACE"] = "CGI/1.1";
-  env_["SERVER_PROTOCOL"] = "HTTP/1.1";
+  env_["SERVER_PROTOCOL"] = HTTP_VERSION;
   env_["SCRIPT_FILENAME"] = cgiPath;
   env_["SCRIPT_NAME"] = cgiPath;
-  env_["CONTENT_LENGTH"] = std::to_string(request_.getBody().length());
-  // env_["CONTENT_TYPE"] = request_.getHeader("content-type");
-  env_["PATH_INFO"] = request_.getUri();
-  env_["PATH_TRANSLATED"] = request_.getUri();
-  // env_["QUERY_STRING"] = request_.getQuery();//クエリストリングをそのまま？
-
-
+  env_["CONTENT_LENGTH"] = std::to_string(request_->getBody().length());
+  env_["PATH_INFO"] = request_->getUri();
+  env_["PATH_TRANSLATED"] = request_->getUri();
+  // env_["QUERY_STRING"] = request_->getQuery();//クエリストリングをそのまま？
 }
 
 void cgiMaster::createPipes() {
   if (pipe(inpipe_) == -1 || pipe(outpipe_) == -1) {
-    throw SysCallFailed();
+    throw SysCallFailed("pipe");
   }
 }
 
 void cgiMaster::execute() {
-  //print request
   pid_ = fork();
   if (pid_ == -1) {
-    throw SysCallFailed();
+    throw SysCallFailed("fork");
   }
 
   if (pid_ == 0) {
     handleChildProcess();
   } else {
     handleParentProcess();
-    std::string header = "HTTP/1.1 200 OK\r\n";
-    header += "Content-Length: " + std::to_string(output_.length()) + "\r\n";
-    header += "Content-Type: text/html\r\n";
-    header += "\r\n";
-    send(clientFd_, header.c_str(), header.length(), 0);
-    send(clientFd_, output_.c_str(), output_.length(), 0);
-    std::cerr << "CGI response: " << output_ << std::endl;
+    generateHTTPHeader();
+    size_t rnrn = output_.find("\r\n\r\n");
+    size_t nn = output_.find("\n\n");
+    if (rnrn == std::string::npos && nn == std::string::npos)
+      return;
+    size_t pos = rnrn == std::string::npos ? nn + 2 : rnrn + 4;
+    response_->setBody(output_.substr(pos));
   }
 }
 
-char ** cgiMaster::envToCArray() {
+char **cgiMaster::envToCArray() {
   char **envp = NULL;
   try {
     envp = new char*[env_.size() + 1];
@@ -78,7 +73,7 @@ char ** cgiMaster::envToCArray() {
       delete[] envp[j];
     }
     delete[] envp;
-    throw SysCallFailed();
+    throw SysCallFailed("new");
   }
   return envp;
 }
@@ -92,19 +87,19 @@ void cgiMaster::handleChildProcess() {
   close(outpipe_[1]);
   char cwd[PATH_MAX];
   if (getcwd(cwd, sizeof(cwd)) == NULL)
-    throw SysCallFailed();
+    throw SysCallFailed("getcwd");
   std::string fullCgiPath = std::string(cwd) + cgiPath;
 
   //envvar
   char **envp = envToCArray();
   execve(fullCgiPath.c_str(), NULL, envp);
-  throw SysCallFailed();
+  throw SysCallFailed("execve");
 }
 
 void cgiMaster::handleParentProcess() {
   close(inpipe_[0]);
   close(outpipe_[1]);
-  std::string body = request_.getBody();
+  std::string body = request_->getBody();
   write(inpipe_[1], body.c_str(), body.length());
   close(inpipe_[1]);
 
@@ -116,31 +111,37 @@ void cgiMaster::handleParentProcess() {
   close(outpipe_[0]);
   int status;
   waitpid(pid_, &status, 0);
+  if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+    throw http::responseStatusException(INTERNAL_SERVER_ERROR);
+  }
 }
 
-const Location* Server::requestLocationMatch(const HttpRequest &request) const {
-    const std::vector<Location>& locations = config_.front().getLocations();
-    size_t max_count = 0;
-    const Location* matchedLocation = NULL;
-    std::string uri = request.getUri();
-
-    if (uri[uri.size() - 1] != '/') {
-        uri += "/";
+void cgiMaster::generateHTTPHeader() {
+  std::string line;
+  std::istringstream iss(output_);
+  while (std::getline(iss, line)) {
+    if (line.empty()) {
+      break;
     }
-
-    for (size_t i = 0; i < locations.size(); ++i) {
-        const std::string& path = locations[i].getName();
-        size_t cur_count = 0;
-        while (cur_count < path.size() && cur_count < uri.size() && path[cur_count] == uri[cur_count]) {
-            if (path[cur_count] == '/' && cur_count > max_count) {
-                max_count = cur_count;
-                matchedLocation = &locations[i];
-            }
-            ++cur_count;
-        }
+    size_t pos = line.find(":");
+    if (pos == std::string::npos) {
+      continue;
     }
-
-    return matchedLocation;//このまま出したらチート
+    std::string key = line.substr(0, pos);
+    std::string value = line.substr(pos + 1);
+    if (key == "Status") {
+      std::istringstream iss(value);
+      std::string status;
+      iss >> status;
+      unsigned int range[] = {100, 599};//本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
+      try {
+        response_->setStatus(static_cast<HttpStatus>(ft::stoui(status, range)));
+      } catch (const std::exception& e) {
+        throw http::responseStatusException(BAD_GATEWAY);
+      }
+      if (!(iss >> status) || status != http::statusToString(response_->getStatus()))
+        throw http::responseStatusException(BAD_GATEWAY);
+    } else
+      response_->setHeader(key, value);
+  }
 }
-
-

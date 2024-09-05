@@ -48,7 +48,7 @@ void Webserv::run() {
   while (true) {
     int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, NULL);
     if (nev < 0) {
-      throw std::runtime_error("kevent wait failed");
+      throw SysCallFailed("kevent");
     }
 
     for (int i = 0; i < nev; i++) {
@@ -153,7 +153,7 @@ void Webserv::handleClientData(int client_fd) {
   ssize_t recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
   if (recv_bytes <= 0) {
     if (recv_bytes < 0) {
-      throw std::runtime_error("recv failed");
+      throw SysCallFailed("recv");
     }
     close(client_fd);
     return;
@@ -161,22 +161,16 @@ void Webserv::handleClientData(int client_fd) {
 
   // リクエストをパース
   HttpRequest request = HttpRequest(buffer_.data());
-  
+
   // 該当するサーバーを探してリクエストを処理
   HttpResponse response;
   std::string port = request.getHostPort();
   bool server_found = false;
-  for (size_t i = 0; i < servers_.size(); ++i) {
+  for (size_t i = 0; i < servers_.size(); i++) {
     if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
       Server &server = servers_[i];
-      const Location* location = server.requestLocationMatch(request);
-      if (location != NULL && location->isCgi()) {
-        handleCGIRequest(request, client_fd, location);
-        return;
-      } else {
-        server.handleRequest(request, response);
-      }
+      server.handleRequest(request, response);
       break;
     }
   }
@@ -188,9 +182,4 @@ void Webserv::handleClientData(int client_fd) {
   std::string res_str = response.encode();
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
-}
-
-void Webserv::handleCGIRequest(const HttpRequest& request, int client_fd, const Location *location) {
-  cgiMaster cgi(request, client_fd, location);
-  cgi.execute();
 }

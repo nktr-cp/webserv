@@ -14,8 +14,8 @@ private:
   void handleChildProcess();
   void handleParentProcess();
 
-  const HttpRequest& request_;
-  int clientFd_;
+  const HttpRequest *request_;
+  HttpResponse *response_;
   std::string cgiPath;
   std::map<std::string, std::string> env_;
   int inpipe_[2];
@@ -24,9 +24,10 @@ private:
   std::string output_;
 
   char** envToCArray();
+  void generateHTTPHeader();
 
 public:
-  cgiMaster(const HttpRequest& request, int client_fd, const Location *location);
+  cgiMaster(const HttpRequest *request, HttpResponse *response, const Location *location);
   ~cgiMaster();
 
   void execute();

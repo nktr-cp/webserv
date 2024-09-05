@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+
+# CGI header
+print("Content-type: text/html\n")
 
 # Output the HTML content
 print("<html>")

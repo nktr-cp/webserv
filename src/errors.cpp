@@ -15,10 +15,10 @@ std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
          token + std::string("'");
 }
 
-SysCallFailed::SysCallFailed(void)
-    : ExtraErrors(ErrMsgWrapper(std::strerror(errno))) {}
+SysCallFailed::SysCallFailed(const std::string &scname)
+    : ExtraErrors(ErrMsgWrapper(scname)) {}
 
-const std::string SysCallFailed::ErrorMessage = ": system call failed";
+const std::string SysCallFailed::ErrorMessage = strerror(errno);
 
 std::string SysCallFailed::ErrMsgWrapper(const std::string& arg) {
   return this->ProgramNamePrefix + arg + this->ErrorMessage;

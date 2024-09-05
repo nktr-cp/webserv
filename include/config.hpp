@@ -53,6 +53,7 @@ class ServerConfig {
   const std::string &getHost() const;
   const std::string &getPort() const;
   const std::map<HttpStatus, std::string> &getErrors() const;
+  const std::string &getErrorPage(HttpStatus) const;
   const std::vector<Location> &getLocations() const;
   const std::string &getServerName() const;
   int getMaxBodySize() const;

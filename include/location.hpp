@@ -39,6 +39,7 @@ class Location {
   const std::string& getRedirect() const;
   const std::string& getCgiPath() const;
   bool isCgi() const;
+  bool isRedirect() const;
   // debug
   void print();
 };

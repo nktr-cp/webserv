@@ -32,6 +32,16 @@ const std::map<HttpStatus, std::string>& ServerConfig::getErrors() const {
   return this->errors_;
 }
 
+const std::string& ServerConfig::getErrorPage(HttpStatus status) const {
+  std::map<HttpStatus, std::string>::const_iterator it = this->errors_.find(status);
+  if (it != this->errors_.end()) {
+    return it->second;
+  } else {
+    static const std::string empty = "";
+    return empty;
+  }
+}
+
 const std::vector<Location>& ServerConfig::getLocations() const {
   return this->locations_;
 }

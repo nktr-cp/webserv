@@ -12,7 +12,6 @@
 
 #include "config.hpp"
 #include "server.hpp"
-#include "cgi.hpp"
 
 class Webserv {
  private:
@@ -37,7 +36,6 @@ class Webserv {
 
   void handleNewConnection(int server_fd);
   void handleClientData(int client_fd);
-  void handleCGIRequest(const HttpRequest& request, int client_fd, const Location *location);
 
   void run();
 };

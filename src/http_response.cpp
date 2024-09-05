@@ -1,25 +1,61 @@
 #include "http_response.hpp"
 
-namespace Http {
+namespace http {
 std::string statusToString(HttpStatus status) {
   switch (status) {
     case OK:
-      return "200 OK";
+      return "OK";
+    case FOUND:
+      return "Found";
+    case TEMPORARY_REDIRECT:
+      return "Temporary Redirect";
+    case PERMANENT_REDIRECT:
+      return "Permanent Redirect";
     case BAD_REQUEST:
-      return "400 Bad Request";
+      return "Bad Request";
+    case UNAUTHORIZED:
+      return "Unauthorized";
     case FORBIDDEN:
-      return "403 Forbidden";
+      return "Forbidden";
     case NOT_FOUND:
-      return "404 Not Found";
+      return "Not Found";
+    case METHOD_NOT_ALLOWED:
+      return "Method Not Allowed";
+    case LENGTH_REQUIRED:
+      return "Length Required";
+    case PAYLOAD_TOO_LARGE:
+      return "Payload Too Large";
+    case URI_TOO_LONG:
+      return "URI Too Long";
+    case TOO_MANY_REQUESTS:
+      return "Too Many Requests";
     case INTERNAL_SERVER_ERROR:
-      return "500 Internal Server Error";
+      return "Internal Server Error";
+    case NOT_IMPLEMENTED:
+      return "Not Implemented";
+    case BAD_GATEWAY:
+      return "Bad Gateway";
+    case SERVICE_UNAVAILABLE:
+      return "Service Unavailable";
+    case GATEWAY_TIMEOUT:
+      return "Gateway Timeout";
     default:
-      return "500 Internal Server Error";
+      return "I'm a teapot";
   }
 }
-}  // namespace Http
 
-const std::string HttpResponse::kHttpVersion = "HTTP/1.1";
+responseStatusException::responseStatusException(HttpStatus status)
+    : status_(status) {}
+
+const char *responseStatusException::what() const throw() {
+  return (std::to_string(this->status_) + " " + statusToString(this->status_))
+      .c_str();
+}
+
+HttpStatus responseStatusException::getStatus() const {
+  return this->status_;
+}
+}  // namespace http
 
 HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {}
 
@@ -50,7 +86,7 @@ void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
     this->setHeader("Content-Type", "text/html");
-    this->body_ = "<h1>" + Http::statusToString(status) + "</h1>";
+    this->body_ = "<h1>" + std::to_string(status) + " " + http::statusToString(status) + "</h1>";
   }
 }
 
@@ -64,7 +100,7 @@ void HttpResponse::setBody(const std::string &body) { this->body_ = body; }
 
 std::string HttpResponse::encode() const {
   std::ostringstream oss;
-  oss << this->kHttpVersion << " " << Http::statusToString(this->status_)
+  oss << HTTP_VERSION << " " << this->status_ << " " << http::statusToString(this->status_)
       << "\r\n";
   for (std::map<std::string, std::string>::const_iterator it =
            this->headers_.begin();

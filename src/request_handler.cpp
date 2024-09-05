@@ -11,6 +11,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
                                ServerConfig &config)
     : request_(&request),
       response_(&response),
+      config_(&config),
       rootPath_(""),
       relativePath_("") {
   if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size()) {
@@ -65,16 +66,23 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
   }
   return *this;
 }
-
 void RequestHandler::process() {
+  if (location_->isRedirect()) {
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", location_->getRedirect());
+    return;
+  }
   if (response_->getStatus() != OK) {
     response_->setHeader("Content-Type", "text/html");
     return;
   }
+  std::cerr << "Current location name: " << location_->getName() << std::endl;
   if (location_->isCgi()) {
+    std::cerr << "Handling: CGI request" << std::endl;
     handleCGIRequest();
     return;
   }
+  std::cerr << "Handling: static request" << std::endl;
   switch (request_->getMethod()) {
     case GET:
       handleStaticGet();
@@ -92,7 +100,14 @@ void RequestHandler::process() {
   if (response_->getStatus() != OK) {
     response_->setHeader("Content-Type", "text/html");
   }
+  std::string errorpage = config_->getErrorPage(response_->getStatus());
+  std::cerr << "Error page: " << errorpage << std::endl;
+  if (!errorpage.empty()) {
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", errorpage);
+  }
 }
+
 
 FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
                      bool d)
@@ -316,6 +331,15 @@ void RequestHandler::
 }
 
 void RequestHandler::handleCGIRequest() {
-  // CGIの処理を行う
-  // エラー処理について：setStatusにエラーコードを入れてreturnすれば、勝手にエラーページを返します
+  cgiMaster cgi(request_, response_, location_);
+  try {
+    cgi.execute();
+  } catch (SysCallFailed &e) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  } catch (http::responseStatusException &e) {
+    response_->setStatus(e.getStatus());
+    return;
+  }
+
 }

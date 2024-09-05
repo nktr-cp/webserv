@@ -109,7 +109,7 @@ class SyntaxError : public ExtraErrors {
 */
 class SysCallFailed : public ExtraErrors {
  public:
-  SysCallFailed(void);
+  SysCallFailed(const std::string& scname);
   static const std::string ErrorMessage;
 
  private:
