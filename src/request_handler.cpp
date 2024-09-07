@@ -83,7 +83,12 @@ void RequestHandler::process() {
     handleCGIRequest();
     return;
   }
-  std::cerr << "Handling: static request" << std::endl;
+  std::cerr << "Handling: " << http::methodToString(request_->getMethod())
+            << " request" << std::endl;
+  if (!location_->isMethodAllowed(request_->getMethod())) {
+    response_->setStatus(METHOD_NOT_ALLOWED);
+    return;
+  }
   switch (request_->getMethod()) {
     case GET:
       handleStaticGet();
@@ -107,6 +112,7 @@ void RequestHandler::process() {
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
+  std::cerr << "Response status: " << response_->getStatus() << std::endl;
 }
 
 

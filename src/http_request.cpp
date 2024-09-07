@@ -2,7 +2,6 @@
 
 const char *HttpRequest::parseMethod(const char *req) {
   this->method_ = kMethodTrie.search(req, ' ');
-  std::cerr << this->method_ << std::endl;
   size_t len = http::methodToString(this->method_).size();
   if (this->method_ == NONE || req[len] != ' ') {
     throw http::responseStatusException(NOT_IMPLEMENTED);

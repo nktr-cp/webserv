@@ -38,7 +38,9 @@ void Location::setCgiPath(const std::string& cgiPath) {
   this->cgiPath_ = cgiPath;
 }
 
-short Location::getMethods() const { return this->methods_; }
+bool Location::isMethodAllowed(const HttpMethod method) const {
+  return this->methods_ & static_cast<short>(method);
+}
 
 const std::string& Location::getName() const { return this->name_; }
 
