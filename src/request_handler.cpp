@@ -30,7 +30,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       if (path[cur] != uri[cur]) {
         break;
       }
-      if (path[i] == '/' && (int)cur > max_count) {
+      if (path[cur] == '/' && (int)cur > max_count) {
         max_count = cur;
         location = &locations[i];
       }
