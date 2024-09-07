@@ -105,26 +105,70 @@ void cgiMaster::handleParentProcess() {
 
   char buffer[BUFFER_SIZE];
   ssize_t n;
-  fd_set read_fds;
-  struct timeval timeout;
-  
-  FD_ZERO(&read_fds);
-  FD_SET(outpipe_[0], &read_fds);
-  timeout.tv_sec = GATEWAY_TIMEOUT_SECONDS;
-  timeout.tv_usec = 0;
 
-  int ret = select(outpipe_[0] + 1, &read_fds, NULL, NULL, &timeout);
+#ifdef __APPLE__
+  int kq = kqueue();
+  if (kq == -1) {
+    throw SysCallFailed("kqueue");
+  }
+
+  struct kevent change;
+  EV_SET(&change, outpipe_[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+
+  struct timespec timeout;
+  timeout.tv_sec = GATEWAY_TIMEOUT_SECONDS;
+  timeout.tv_nsec = 0;
+
+  int ret = kevent(kq, &change, 1, &change, 1, &timeout);
   if (ret == -1) {
-    throw SysCallFailed("select");
+    close(kq);
+    throw SysCallFailed("kevent");
   } else if (ret == 0) {
+    close(kq);
     signal(SIGCHLD, SIG_IGN);
     throw http::responseStatusException(GATEWAY_TIMEOUT);
   }
 
-  if (FD_ISSET(outpipe_[0], &read_fds)) {
+  if (change.filter == EVFILT_READ) {
     while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
       output_.append(buffer, n);
   }
+  close(kq);
+
+#elif __linux__
+  int epfd = epoll_create1(0);
+  if (epfd == -1) {
+    throw SysCallFailed("epoll_create1");
+  }
+
+  struct epoll_event event;
+  event.events = EPOLLIN;
+  event.data.fd = outpipe_[0];
+
+  if (epoll_ctl(epfd, EPOLL_CTL_ADD, outpipe_[0], &event) == -1) {
+    close(epfd);
+    throw SysCallFailed("epoll_ctl");
+  }
+
+  struct epoll_event events[1];
+  int ret = epoll_wait(epfd, events, 1, GATEWAY_TIMEOUT_SECONDS * 1000);
+  if (ret == -1) {
+    close(epfd);
+    throw SysCallFailed("epoll_wait");
+  } else if (ret == 0) {
+    close(epfd);
+    signal(SIGCHLD, SIG_IGN);
+    throw http::responseStatusException(GATEWAY_TIMEOUT);
+  }
+
+  if (events[0].events & EPOLLIN) {
+    while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
+      output_.append(buffer, n);
+  }
+  close(epfd);
+
+#endif
+
   close(outpipe_[0]);
   int status;
   waitpid(pid_, &status, 0);
