@@ -136,6 +136,7 @@ const char *HttpRequest::parseHeader(const char *req) {
       throw RequestHeaderFieldsTooLargeException();
     }
     req += i;
+    i = 0;
     for (; req[i] && req[i] != '\r'; i++) {
       if (++this->contentLength_ >= kMaxHeaderSize) {
         throw RequestHeaderFieldsTooLargeException();
