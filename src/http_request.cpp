@@ -1,32 +1,10 @@
 #include "http_request.hpp"
 
-#include <map>
-#include <stdexcept>
-#include <string>
-#include <climits>
-
-#include "server.hpp"
-#include "trie_node.hpp"
-#include "typedefs.hpp"
-
-std::string to_string(HttpMethod method) {
-  switch (method) {
-    case GET:
-      return "GET";
-    case POST:
-      return "POST";
-    case DELETE:
-      return "DELETE";
-    default:
-      return "NONE";
-  }
-}
-
 const char *HttpRequest::parseMethod(const char *req) {
   this->method_ = kMethodTrie.search(req, ' ');
-  size_t len = to_string(this->method_).size();
+  size_t len = http::methodToString(this->method_).size();
   if (this->method_ == NONE || req[len] != ' ') {
-    throw BadRequestException();
+    throw http::responseStatusException(NOT_IMPLEMENTED);
   }
   return req + len + 1;
 }
@@ -38,22 +16,22 @@ const char *HttpRequest::parseUri(const char *req) {
   std::size_t i = 0;
   for (; req[i] != ' ' && req[i] != '?'; i++) {
     if (++this->contentLength_ >= kMaxUriSize) {
-      throw UriTooLongException();
+      throw http::responseStatusException(URI_TOO_LONG);
     }
     if (req[i] < '!' || req[i] > '~') {
-      throw BadRequestException();
+      throw http::responseStatusException(BAD_REQUEST);
     }
   }
   this->uri_ = std::string(req, i);
   if (this->uri_.empty() || (req[i] != ' ' && req[i] != '?')) {
-    throw BadRequestException();
+    throw http::responseStatusException(BAD_REQUEST);
   }
   req += i;
   // Parse query
   if (*req == '?') {
     req++;
     if (++this->contentLength_ >= kMaxUriSize) {
-      throw UriTooLongException();
+      throw http::responseStatusException(URI_TOO_LONG);
     }
     while (true) {
       // Parse key
@@ -61,10 +39,10 @@ const char *HttpRequest::parseUri(const char *req) {
       i = 0;
       for (; req[i] && (req[i] != '&' && req[i] != '=' && req[i] != ' '); i++) {
         if (++this->contentLength_ >= kMaxUriSize) {
-          throw UriTooLongException();
+          throw http::responseStatusException(URI_TOO_LONG);
         }
         if (req[i] < '!' || req[i] > '~') {
-          throw BadRequestException();
+          throw http::responseStatusException(BAD_REQUEST);
         }
       }
       key = std::string(req, i);
@@ -74,10 +52,10 @@ const char *HttpRequest::parseUri(const char *req) {
         i = 0;
         for (; req[i] && (req[i] != '&' && req[i] != ' '); i++) {
           if (++this->contentLength_ >= kMaxUriSize) {
-            throw UriTooLongException();
+            throw http::responseStatusException(URI_TOO_LONG);
           }
           if (req[i] < '!' || req[i] > '~') {
-            throw BadRequestException();
+            throw http::responseStatusException(BAD_REQUEST);
           }
         }
         this->query_[key] = std::string(req, i);
@@ -87,7 +65,7 @@ const char *HttpRequest::parseUri(const char *req) {
       req += i;
       if (*req == '&') {
         if (++this->contentLength_ >= kMaxUriSize) {
-          throw UriTooLongException();
+          throw http::responseStatusException(URI_TOO_LONG);
         }
         req++;
       } else {
@@ -96,7 +74,7 @@ const char *HttpRequest::parseUri(const char *req) {
     }
   }
   if (*req != ' ') {
-    throw BadRequestException();
+    throw http::responseStatusException(BAD_REQUEST);
   }
   return req + 1;
 }
@@ -106,13 +84,13 @@ const char *HttpRequest::parseVersion(const char *req) {
   std::size_t i = 0;
   for (; req[i] && req[i] != '\r'; i++) {
     if (req[i] < '!' || req[i] > '~') {
-      throw BadRequestException();
+      throw http::responseStatusException(BAD_REQUEST);
     }
   }
   this->version_ = std::string(req, i);
   if (this->version_.empty() || req[i] != '\r' || req[i + 1] != '\n' ||
       this->version_ != "HTTP/1.1") {
-    throw BadRequestException();
+    throw http::responseStatusException(BAD_REQUEST);
   }
   return req + i + 2;
 }
@@ -123,27 +101,27 @@ const char *HttpRequest::parseHeader(const char *req) {
     size_t i = 0;
     for (; req[i] && req[i] != ':'; i++) {
       if (++this->contentLength_ >= kMaxHeaderSize) {
-        throw RequestHeaderFieldsTooLargeException();
+        throw http::responseStatusException(REQUEST_HEADER_FIELDS_TOO_LARGE);
       }
     }
     if (req[i] != ':' || req[i + 1] != ' ') {
-      throw BadRequestException();
+      throw http::responseStatusException(BAD_REQUEST);
     }
     std::string key = std::string(req, i);
     i += 2;  // Skip ": "
     this->contentLength_ += 2;
     if (contentLength_ >= kMaxHeaderSize) {
-      throw RequestHeaderFieldsTooLargeException();
+      throw http::responseStatusException(REQUEST_HEADER_FIELDS_TOO_LARGE);
     }
     req += i;
     i = 0;
     for (; req[i] && req[i] != '\r'; i++) {
       if (++this->contentLength_ >= kMaxHeaderSize) {
-        throw RequestHeaderFieldsTooLargeException();
+        throw http::responseStatusException(REQUEST_HEADER_FIELDS_TOO_LARGE);
       }
     }
     if (req[i] != '\r' || req[i + 1] != '\n') {
-      throw BadRequestException();
+      throw http::responseStatusException(BAD_REQUEST);
     }
     if (i == 0) {
       this->headers_[key] = "";
@@ -153,7 +131,7 @@ const char *HttpRequest::parseHeader(const char *req) {
     req += i + 2;  // Skip "\r\n"
     this->contentLength_ += 2;
     if (contentLength_ >= kMaxHeaderSize) {
-      throw RequestHeaderFieldsTooLargeException();
+      throw http::responseStatusException(REQUEST_HEADER_FIELDS_TOO_LARGE);
     }
   }
   return req;
@@ -172,7 +150,7 @@ HttpRequest::HttpRequest(const char *raw_request) {
       size_t i = 0;
       for (; i < host.size() && host[i] != ':'; i++) {
         if (!std::isalnum(host[i]) && host[i] != '.' && host[i] != '-') {
-          throw BadRequestException();
+          throw http::responseStatusException(BAD_REQUEST);
         }
       }
       this->hostName_ = std::string(host, 0, i);
@@ -182,11 +160,11 @@ HttpRequest::HttpRequest(const char *raw_request) {
         this->hostPort_ = std::string(host, i + 1);
       }
     } catch (std::out_of_range &e) {
-      throw BadRequestException();
-    } catch (RequestException &e) {
+      throw http::responseStatusException(BAD_REQUEST);
+    } catch (http::responseStatusException &e) {
       throw e;
     }
-  } catch (RequestException &e) {
+  } catch (http::responseStatusException &e) {
     throw e;
   }
   this->contentLength_ = 0;
@@ -197,15 +175,15 @@ HttpRequest::HttpRequest(const char *raw_request) {
     try {
       this->body_ = std::string(raw_request);
     } catch (std::length_error &e) {
-      throw PayloadTooLargeException();
+      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
     } catch (std::bad_alloc &e) {
-      throw PayloadTooLargeException();
+      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
     }
     if (this->body_.size() >= kMaxPayloadSize) {
-      throw PayloadTooLargeException();
+      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
     }
   } else {
-    throw BadRequestException();
+    throw http::responseStatusException(BAD_REQUEST);
   }
 }
 HttpRequest::HttpRequest(const HttpRequest &src) { *this = src; }
@@ -213,9 +191,13 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &src) {
   if (this != &src) {
     this->method_ = src.method_;
     this->uri_ = src.uri_;
+    this->query_ = src.query_;
+    this->hostName_ = src.hostName_;
+    this->hostPort_ = src.hostPort_;
     this->version_ = src.version_;
     this->headers_ = src.headers_;
     this->body_ = src.body_;
+    this->contentLength_ = src.contentLength_;
   }
   return *this;
 }
@@ -223,12 +205,15 @@ HttpRequest::~HttpRequest() {}
 
 TrieNode<HttpMethod> initialize_method_trie() {
   TrieNode<HttpMethod> root;
-  root.insert("GET", GET);
-  root.insert("HEAD", HEAD);
-  root.insert("POST", POST);
-  root.insert("OPTIONS", OPTIONS);
-  root.insert("PUT", PUT);
-  root.insert("DELETE", DELETE);
+  root.insert(http::methodToString(GET).c_str(), GET);
+  root.insert(http::methodToString(HEAD).c_str(), HEAD);
+  root.insert(http::methodToString(POST).c_str(), POST);
+  root.insert(http::methodToString(PUT).c_str(), PUT);
+  root.insert(http::methodToString(DELETE).c_str(), DELETE);
+  root.insert(http::methodToString(CONNECT).c_str(), CONNECT);
+  root.insert(http::methodToString(OPTIONS).c_str(), OPTIONS);
+  root.insert(http::methodToString(TRACE).c_str(), TRACE);
+  root.insert(http::methodToString(PATCH).c_str(), PATCH);
   return root;
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
@@ -242,6 +227,17 @@ const dict &HttpRequest::getQuery() const { return this->query_; }
 const std::string &HttpRequest::getQuery(const std::string &key) const {
   return this->query_.at(key);
 }
+const std::string &HttpRequest::getQueryAsStr() const {
+  static std::string query;
+  query.clear();
+  for (dict::const_iterator it = this->query_.begin(); it != this->query_.end(); it++) {
+    query += it->first + "=" + it->second + "&";
+  }
+  if (!query.empty()) {
+    query.pop_back();
+  }
+  return query;
+}
 const std::string &HttpRequest::getHostName() const {
   return this->hostName_;
 }
@@ -254,28 +250,3 @@ const std::string &HttpRequest::getHeader(const std::string &key) const {
   return this->headers_.at(key);
 }
 const std::string &HttpRequest::getBody() const { return this->body_; }
-
-HttpRequest::RequestException::RequestException(HttpStatus status)
-    : httpStatus_(status), message_(NULL) {}
-HttpRequest::RequestException::RequestException(HttpStatus status,
-                                                const char *message)
-    : httpStatus_(status), message_(message) {}
-const char *HttpRequest::RequestException::what() const throw() {
-  return this->message_;
-}
-HttpStatus HttpRequest::RequestException::getStatus() const {
-  return this->httpStatus_;
-}
-
-HttpRequest::BadRequestException::BadRequestException()
-    : RequestException(BAD_REQUEST, "Bad Request") {}
-HttpRequest::UriTooLongException::UriTooLongException()
-    : RequestException(URI_TOO_LONG, "URI too long") {}
-HttpRequest::RequestHeaderFieldsTooLargeException::
-    RequestHeaderFieldsTooLargeException()
-    : RequestException(REQUEST_HEADER_FIELDS_TOO_LARGE,
-                       "Request header fields too large") {}
-HttpRequest::PayloadTooLargeException::PayloadTooLargeException()
-    : RequestException(PAYLOAD_TOO_LARGE, "Payload too large") {}
-HttpRequest::InternalServerErrorException::InternalServerErrorException()
-    : RequestException(INTERNAL_SERVER_ERROR, "Internal Server Error") {}

@@ -7,7 +7,8 @@ Location::Location()
       index_(),
       extensions_(),
       upoadPath_(""),
-      redirect_("") {}
+      redirect_(""),
+      cgiPath_("") {}
 
 void Location::addMethod(const HttpMethod method) {
   this->methods_ |= static_cast<short>(method);
@@ -37,7 +38,9 @@ void Location::setCgiPath(const std::string& cgiPath) {
   this->cgiPath_ = cgiPath;
 }
 
-short Location::getMethods() const { return this->methods_; }
+bool Location::isMethodAllowed(const HttpMethod method) const {
+  return this->methods_ & static_cast<short>(method);
+}
 
 const std::string& Location::getName() const { return this->name_; }
 
@@ -65,6 +68,10 @@ const std::string& Location::getCgiPath() const {
 
 bool Location::isCgi() const {
   return !this->cgiPath_.empty();
+}
+
+bool Location::isRedirect() const {
+  return !this->redirect_.empty();
 }
 
 void Location::print() {

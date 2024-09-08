@@ -16,9 +16,9 @@
 class Webserv {
  private:
   std::vector<Server> servers_;
-  void parseConfig(const std::string &configFile);
 
   void createServerSockets();
+  void sendResponse(const int client_fd, const HttpResponse &response);
 
 #ifdef __APPLE__
   int kq_;

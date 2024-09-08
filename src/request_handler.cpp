@@ -11,6 +11,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
                                ServerConfig &config)
     : request_(&request),
       response_(&response),
+      config_(&config),
       rootPath_(""),
       relativePath_("") {
   if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size()) {
@@ -65,14 +66,27 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
   }
   return *this;
 }
-
 void RequestHandler::process() {
+  if (location_->isRedirect()) {
+    std::cerr << "Handling: redirect" << std::endl;
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", location_->getRedirect());
+    return;
+  }
   if (response_->getStatus() != OK) {
     response_->setHeader("Content-Type", "text/html");
     return;
   }
+  std::cerr << "Current location name: " << location_->getName() << std::endl;
   if (location_->isCgi()) {
+    std::cerr << "Handling: CGI request" << std::endl;
     handleCGIRequest();
+    return;
+  }
+  std::cerr << "Handling: " << http::methodToString(request_->getMethod())
+            << " request" << std::endl;
+  if (!location_->isMethodAllowed(request_->getMethod())) {
+    response_->setStatus(METHOD_NOT_ALLOWED);
     return;
   }
   switch (request_->getMethod()) {
@@ -92,7 +106,15 @@ void RequestHandler::process() {
   if (response_->getStatus() != OK) {
     response_->setHeader("Content-Type", "text/html");
   }
+  std::string errorpage = config_->getErrorPage(response_->getStatus());
+  if (!errorpage.empty()) {
+    std::cerr << response_->getStatus() << " error: redirecting" << std::endl;
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", errorpage);
+  }
+  std::cerr << "Response status: " << response_->getStatus() << std::endl;
 }
+
 
 FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
                      bool d)
@@ -178,7 +200,7 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
          << (it->isDirectory ? "/" : "") << "</a></td>\n"
          << "            <td>" << it->modTime << "</td>\n"
          << "            <td>"
-         << (it->isDirectory ? "-" : ft::to_string(it->size)) << "</td>\n"
+         << (it->isDirectory ? "-" : std::to_string(it->size)) << "</td>\n"
          << "        </tr>\n";
   }
 
@@ -316,6 +338,14 @@ void RequestHandler::
 }
 
 void RequestHandler::handleCGIRequest() {
-  // CGIの処理を行う
-  // エラー処理について：setStatusにエラーコードを入れてreturnすれば、勝手にエラーページを返します
+  cgiMaster cgi(request_, response_, location_);
+  try {
+    cgi.execute();
+  } catch (SysCallFailed &e) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  } catch (http::responseStatusException &e) {
+    response_->setStatus(e.getStatus());
+    return;
+  }
 }

@@ -5,8 +5,7 @@
 
 #include "trie_node.hpp"
 #include "typedefs.hpp"
-
-std::string to_string(HttpMethod method);
+#include "utils.hpp"
 
 class HttpRequest {
  private:
@@ -40,42 +39,11 @@ class HttpRequest {
   const std::string& getUri() const;
   const dict& getQuery() const;
   const std::string& getQuery(const std::string& key) const;
+  const std::string& getQueryAsStr() const;
   const std::string& getHostName() const;
   const std::string& getHostPort() const;
   const std::string& getVersion() const;
   const dict& getHeader() const;
   const std::string& getHeader(const std::string& key) const;
   const std::string& getBody() const;
-
-  class RequestException : public std::exception {
-   private:
-    HttpStatus httpStatus_;
-    const char* message_;
-
-   public:
-    RequestException(HttpStatus status);
-    RequestException(HttpStatus status, const char* message);
-    const char* what() const throw();
-    HttpStatus getStatus() const;
-  };
-  class BadRequestException : public RequestException {
-   public:
-    BadRequestException();
-  };
-  class PayloadTooLargeException : public RequestException {
-   public:
-    PayloadTooLargeException();
-  };
-  class UriTooLongException : public RequestException {
-   public:
-    UriTooLongException();
-  };
-  class RequestHeaderFieldsTooLargeException : public RequestException {
-   public:
-    RequestHeaderFieldsTooLargeException();
-  };
-  class InternalServerErrorException : public RequestException {
-   public:
-    InternalServerErrorException();
-  };
 };

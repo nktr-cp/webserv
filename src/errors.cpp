@@ -2,7 +2,7 @@
 
 ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {}
 
-const std::string ExtraErrors::ProgramNamePrefix = "webserv: ";
+const std::string ExtraErrors::ProgramNamePrefix = PROGRAM_NAME + std::string(": ");
 
 SyntaxError::SyntaxError(const std::string& token)
     : ExtraErrors(ErrMsgWrapper(token)) {}
@@ -15,13 +15,13 @@ std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
          token + std::string("'");
 }
 
-SysCallFailed::SysCallFailed(void)
-    : ExtraErrors(ErrMsgWrapper(std::strerror(errno))) {}
+SysCallFailed::SysCallFailed(const std::string &scname)
+    : ExtraErrors(ErrMsgWrapper(scname)) {}
 
-const std::string SysCallFailed::ErrorMessage = ": system call failed";
+const std::string SysCallFailed::ErrorMessage = strerror(errno);
 
 std::string SysCallFailed::ErrMsgWrapper(const std::string& arg) {
-  return this->ProgramNamePrefix + arg + this->ErrorMessage;
+  return this->ProgramNamePrefix + arg + std::string(": ") + this->ErrorMessage;
 }
 
 ArgOutOfRange::ArgOutOfRange(const std::string& arg)

@@ -29,7 +29,7 @@ void Webserv::run() {
 #ifdef __APPLE__
   kq_ = kqueue();
   if (kq_ == -1) {
-    throw std::runtime_error("kqueue failed");
+    throw SysCallFailed("kqueue");
   }
 
   // Register server sockets with kqueue
@@ -37,7 +37,7 @@ void Webserv::run() {
     struct kevent ev;
     EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
     if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-      throw std::runtime_error("kevent add server failed");
+      throw SysCallFailed("kevent add");
     }
   }
 
@@ -48,7 +48,7 @@ void Webserv::run() {
   while (true) {
     int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, NULL);
     if (nev < 0) {
-      throw std::runtime_error("kevent wait failed");
+      throw SysCallFailed("kevent");
     }
 
     for (int i = 0; i < nev; i++) {
@@ -71,7 +71,7 @@ void Webserv::run() {
 #elif __linux__
   epoll_fd_ = epoll_create1(0);
   if (epoll_fd_ == -1) {
-    throw std::runtime_error("epoll_create1 failed");
+    throw SysCallFailed("epoll_create1");
   }
 
   // Register server sockets with epoll
@@ -81,7 +81,7 @@ void Webserv::run() {
     ev.data.fd = servers_[i].getServerFd();
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, servers_[i].getServerFd(), &ev) ==
         -1) {
-      throw std::runtime_error("epoll_ctl add server failed");
+      throw SysCallFailed("epoll_ctl add");
     }
   }
 
@@ -92,10 +92,10 @@ void Webserv::run() {
   while (true) {
     int nev = epoll_wait(epoll_fd_, &events_[0], kMaxEvents, -1);
     if (nev < 0) {
-      throw std::runtime_error("epoll_wait failed");
+      throw SysCallFailed("epoll_wait");
     }
 
-    for (int i = 0; i < nev; i++) {
+    for (size_t i = 0; i < nev; i++) {
       int fd = events_[i].data.fd;
 
       bool isServerSocket = false;
@@ -123,7 +123,7 @@ void Webserv::handleNewConnection(int server_fd) {
              &client_len);
   if (client_fd == -1) {
     if (errno != EWOULDBLOCK && errno != EAGAIN) {
-      std::runtime_error("accept failed");
+      throw SysCallFailed("accept");
     }
     return;
   }
@@ -136,7 +136,7 @@ void Webserv::handleNewConnection(int server_fd) {
   EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
   if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
     close(client_fd);
-    throw std::runtime_error("kevent add client failed");
+    throw SysCallFailed("kevent add");
   }
 #elif __linux__
   struct epoll_event ev;
@@ -144,7 +144,7 @@ void Webserv::handleNewConnection(int server_fd) {
   ev.data.fd = client_fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
     close(client_fd);
-    throw std::runtime_error("epoll_ctl add client failed");
+    throw SysCallFailed("epoll_ctl add");
   }
 #endif
 }
@@ -153,17 +153,24 @@ void Webserv::handleClientData(int client_fd) {
   ssize_t recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
   if (recv_bytes <= 0) {
     if (recv_bytes < 0) {
-      throw std::runtime_error("recv failed");
+      throw SysCallFailed("recv");
     }
     close(client_fd);
     return;
   }
+  HttpRequest request;
+  HttpResponse response;
 
   // リクエストをパース
-  HttpRequest request = HttpRequest(buffer_.data());
+  try {
+    request = HttpRequest(buffer_.data());
+  } catch (const http::responseStatusException &e) {
+    response.setStatus(e.getStatus());
+    sendResponse(client_fd, response);
+    return;
+  }
 
   // 該当するサーバーを探してリクエストを処理
-  HttpResponse response;
   std::string port = request.getHostPort();
   bool server_found = false;
   for (size_t i = 0; i < servers_.size(); i++) {
@@ -177,8 +184,11 @@ void Webserv::handleClientData(int client_fd) {
   if (!server_found) {
     response.setStatus(NOT_FOUND);
   }
-
   // レスポンスをクライアントに送信
+  sendResponse(client_fd, response);
+}
+
+void Webserv::sendResponse(const int client_fd, const HttpResponse &response) {
   std::string res_str = response.encode();
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);

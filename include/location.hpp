@@ -29,7 +29,7 @@ class Location {
   void setRedirect(const std::string&);
   void setCgiPath(const std::string&);
 
-  short getMethods() const;
+  bool isMethodAllowed(const HttpMethod) const;
   const std::string& getName() const;
   const std::string& getRoot() const;
   bool isAutoIndex() const;
@@ -39,6 +39,7 @@ class Location {
   const std::string& getRedirect() const;
   const std::string& getCgiPath() const;
   bool isCgi() const;
+  bool isRedirect() const;
   // debug
   void print();
 };

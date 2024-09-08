@@ -9,6 +9,7 @@
 #include "config.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
+#include "cgi.hpp"
 #include "location.hpp"
 #include "typedefs.hpp"
 #include "utils.hpp"
@@ -26,6 +27,7 @@ class RequestHandler {
  private:
   HttpRequest *request_;
   HttpResponse *response_;
+  const ServerConfig *config_;
   const Location *location_;
   std::string rootPath_;
   std::string relativePath_;

@@ -7,14 +7,9 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-namespace Http {
-  std::string statusToString(HttpStatus status);
-} // namespace Http
-
 // デフォルトのstatusはOK
 class HttpResponse {
  private:
-  static const std::string kHttpVersion;
   HttpStatus status_;
   dict headers_;
   std::string body_;

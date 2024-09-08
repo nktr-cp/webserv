@@ -1,26 +1,5 @@
 #include "http_response.hpp"
 
-namespace Http {
-std::string statusToString(HttpStatus status) {
-  switch (status) {
-    case OK:
-      return "200 OK";
-    case BAD_REQUEST:
-      return "400 Bad Request";
-    case FORBIDDEN:
-      return "403 Forbidden";
-    case NOT_FOUND:
-      return "404 Not Found";
-    case INTERNAL_SERVER_ERROR:
-      return "500 Internal Server Error";
-    default:
-      return "500 Internal Server Error";
-  }
-}
-}  // namespace Http
-
-const std::string HttpResponse::kHttpVersion = "HTTP/1.1";
-
 HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {}
 
 HttpResponse::HttpResponse(HttpStatus status)
@@ -50,7 +29,7 @@ void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
     this->setHeader("Content-Type", "text/html");
-    this->body_ = "<h1>" + Http::statusToString(status) + "</h1>";
+    this->body_ = "<h1>" + std::to_string(status) + " " + http::statusToString(status) + "</h1>";
   }
 }
 
@@ -64,7 +43,7 @@ void HttpResponse::setBody(const std::string &body) { this->body_ = body; }
 
 std::string HttpResponse::encode() const {
   std::ostringstream oss;
-  oss << this->kHttpVersion << " " << Http::statusToString(this->status_)
+  oss << HTTP_VERSION << " " << this->status_ << " " << http::statusToString(this->status_)
       << "\r\n";
   for (std::map<std::string, std::string>::const_iterator it =
            this->headers_.begin();
