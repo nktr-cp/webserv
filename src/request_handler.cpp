@@ -68,7 +68,7 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 }
 void RequestHandler::process() {
   if (location_->isRedirect()) {
-    std::cerr << "Handling: redirect" << std::endl;
+    std::cerr << "Handling:\tredirect" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", location_->getRedirect());
     return;
@@ -77,14 +77,13 @@ void RequestHandler::process() {
     response_->setHeader("Content-Type", "text/html");
     return;
   }
-  std::cerr << "Current location name: " << location_->getName() << std::endl;
+  std::cerr << "Location:\t" << location_->getName() << std::endl;
   if (location_->isCgi()) {
-    std::cerr << "Handling: CGI request" << std::endl;
+    std::cerr << "Handling:\tCGI " << http::methodToString(request_->getMethod()) << std::endl; 
     handleCGIRequest();
     return;
   }
-  std::cerr << "Handling: " << http::methodToString(request_->getMethod())
-            << " request" << std::endl;
+  std::cerr << "Handling:\t" << http::methodToString(request_->getMethod()) << std::endl;
   if (!location_->isMethodAllowed(request_->getMethod())) {
     response_->setStatus(METHOD_NOT_ALLOWED);
     return;
@@ -108,11 +107,11 @@ void RequestHandler::process() {
   }
   std::string errorpage = config_->getErrorPage(response_->getStatus());
   if (!errorpage.empty()) {
-    std::cerr << response_->getStatus() << " error: redirecting" << std::endl;
+    std::cerr << response_->getStatus() << " error:\tredirecting" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
-  std::cerr << "Response status: " << response_->getStatus() << std::endl;
+  std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
 

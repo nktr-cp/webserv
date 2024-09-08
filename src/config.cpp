@@ -121,6 +121,8 @@ void Config::parseError(ServerConfig *server) {
     throw ArgOutOfRange(token);
   }
   token = tokenize(content_);
+  if (token.find(HTTP) != 0 && token.find(HTTPS) != 0 && token[0] != '/')
+    throw InvalidArgument(token);
   server->addError(code, token);
   token = tokenize(content_);
   if (token != ";") throw SyntaxError(token);
