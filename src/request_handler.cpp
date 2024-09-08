@@ -259,7 +259,10 @@ void RequestHandler::handleStaticGet() {
         response_->setStatus(OK);
         return;
       } else {
-        response_->setStatus(FORBIDDEN);
+        if (!indexFiles.empty())
+          response_->setStatus(NOT_FOUND);
+        else
+          response_->setStatus(FORBIDDEN);
         return;
       }
     }
@@ -299,9 +302,9 @@ void RequestHandler::handleStaticPost() {
   response_->setStatus(OK);
 }
 
-void RequestHandler::
-    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
+void RequestHandler::handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
+  
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -311,6 +314,7 @@ void RequestHandler::
     response_->setStatus(NOT_FOUND);
     return;
   }
+
   Result<bool> is_dir = filemanip::isDir(path);
   if (!is_dir.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -320,10 +324,7 @@ void RequestHandler::
     response_->setStatus(BAD_REQUEST);
     return;
   }
-  if (remove(path.c_str()) != 0) {
-    response_->setStatus(INTERNAL_SERVER_ERROR);
-    return;
-  }
+
   Result<bool> is_deletable = filemanip::isDeletable(path);
   if (!is_deletable.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -333,6 +334,12 @@ void RequestHandler::
     response_->setStatus(FORBIDDEN);
     return;
   }
+
+  if (remove(path.c_str()) != 0) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+
   response_->setStatus(OK);
 }
 
