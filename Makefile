@@ -1,6 +1,8 @@
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -fsanitize=address,undefined
 NAME = webserv
+DOCKER_IMAGE_NAME = webserv_image
+DOCKER_CONTAINER_NAME = webserv_container
 
 GRAY		= \033[1;37m
 CYAN		= \033[1;36m
@@ -37,12 +39,6 @@ OBJS = $(SRCS:$(SRCSDIR)/%.cpp=$(OBJSDIR)/%.o)
 all: $(NAME)
 .PHONY: all
 
-linux:
-	docker build -t webserv .
-	docker run -p 8080:8080 --name webserv_container webserv || true
-	docker rm webserv_container
-.PHONY: linux
-
 $(NAME): $(OBJS)
 	@printf "$(YELLOW)Compiling $@... $(CONVERSION)$(RESET)"
 	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
@@ -65,3 +61,20 @@ fclean: clean
 
 re: fclean all
 .PHONY: re
+
+image:
+	@printf "$(YELLOW)Building Docker image...$(RESET)\n"
+	@docker build -t $(DOCKER_IMAGE_NAME) .
+	@printf "$(GREEN)Docker image built successfully$(RESET)\n"
+.PHONY: image
+
+login:
+	@printf "$(YELLOW)Logging into Docker container...$(RESET)\n"
+	@docker run -it --rm --name $(DOCKER_CONTAINER_NAME) $(DOCKER_IMAGE_NAME)
+.PHONY: login
+
+linux_test:
+	@printf "$(YELLOW)Testing webserv build in Docker container...$(RESET)\n"
+	@docker run --rm $(DOCKER_IMAGE_NAME) make re
+	@printf "$(GREEN)Webserv build test completed$(RESET)\n"
+.PHONY: linux_test

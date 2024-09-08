@@ -10,6 +10,4 @@ WORKDIR /app
 
 COPY . .
 
-RUN make re
-
-CMD ["./webserv"]
+CMD ["/bin/bash"]
