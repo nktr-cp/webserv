@@ -226,6 +226,17 @@ const dict &HttpRequest::getQuery() const { return this->query_; }
 const std::string &HttpRequest::getQuery(const std::string &key) const {
   return this->query_.at(key);
 }
+const std::string &HttpRequest::getQueryAsStr() const {
+  static std::string query;
+  query.clear();
+  for (dict::const_iterator it = this->query_.begin(); it != this->query_.end(); it++) {
+    query += it->first + "=" + it->second + "&";
+  }
+  if (!query.empty()) {
+    query.pop_back();
+  }
+  return query;
+}
 const std::string &HttpRequest::getHostName() const {
   return this->hostName_;
 }

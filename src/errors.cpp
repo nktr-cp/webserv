@@ -2,7 +2,7 @@
 
 ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {}
 
-const std::string ExtraErrors::ProgramNamePrefix = "webserv: ";
+const std::string ExtraErrors::ProgramNamePrefix = PROGRAM_NAME + std::string(": ");
 
 SyntaxError::SyntaxError(const std::string& token)
     : ExtraErrors(ErrMsgWrapper(token)) {}

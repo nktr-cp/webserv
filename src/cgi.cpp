@@ -17,17 +17,17 @@ cgiMaster::~cgiMaster() {
 void cgiMaster::setEnvironment() {//TODO:ない可能性があるものの確認
   env_["REQUEST_METHOD"] = http::methodToString(request_->getMethod());
   env_["REQUEST_URI"] = request_->getUri();
-  env_["SERVER_SOFTWARE"] = "webserv";
+  env_["SERVER_SOFTWARE"] = PROGRAM_NAME;
   env_["SERVER_NAME"] = request_->getHostName();
   env_["SERVER_PORT"] = request_->getHostPort();
-  env_["GATEWAY_INTERFACE"] = "CGI/1.1";
+  env_["GATEWAY_INTERFACE"] = CGI_VERSION;
   env_["SERVER_PROTOCOL"] = HTTP_VERSION;
   env_["SCRIPT_FILENAME"] = cgiPath;
   env_["SCRIPT_NAME"] = cgiPath;
   env_["CONTENT_LENGTH"] = std::to_string(request_->getBody().length());
   env_["PATH_INFO"] = request_->getUri();
   env_["PATH_TRANSLATED"] = request_->getUri();
-  // env_["QUERY_STRING"] = request_->getQuery();//クエリストリングをそのまま？
+  env_["QUERY_STRING"] = request_->getQueryAsStr();
 }
 
 void cgiMaster::createPipes() {

@@ -55,18 +55,22 @@ std::string methodToString(HttpMethod method) {
   switch (method) {
     case GET:
       return "GET";
-    case POST:
-      return "POST";
-    case DELETE:
-      return "DELETE";
     case HEAD:
       return "HEAD";
-    case OPTIONS:
-      return "OPTIONS";
+    case POST:
+      return "POST";
     case PUT:
       return "PUT";
+    case DELETE:
+      return "DELETE";
     case CONNECT:
       return "CONNECT";
+    case OPTIONS:
+      return "OPTIONS";
+    case TRACE:
+      return "TRACE";
+    case PATCH:
+      return "PATCH";
     default:
       return "NONE";
   }

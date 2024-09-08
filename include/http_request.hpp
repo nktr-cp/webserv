@@ -39,6 +39,7 @@ class HttpRequest {
   const std::string& getUri() const;
   const dict& getQuery() const;
   const std::string& getQuery(const std::string& key) const;
+  const std::string& getQueryAsStr() const;
   const std::string& getHostName() const;
   const std::string& getHostPort() const;
   const std::string& getVersion() const;
