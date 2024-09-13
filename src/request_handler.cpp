@@ -64,7 +64,6 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 
 void RequestHandler::process() {
   if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
     return;
   }
   switch (request_->getMethod()) {
@@ -80,9 +79,6 @@ void RequestHandler::process() {
     default:
       response_->setStatus(METHOD_NOT_ALLOWED);
       break;
-  }
-  if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
   }
 }
 

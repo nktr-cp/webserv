@@ -11,6 +11,16 @@ std::string statusToString(HttpStatus status) {
       return "403 Forbidden";
     case NOT_FOUND:
       return "404 Not Found";
+    case METHOD_NOT_ALLOWED:
+      return "405 Method Not Allowed";
+    case REQUEST_TIMEOUT:
+      return "408 Request Timeout";
+    case PAYLOAD_TOO_LARGE:
+      return "413 Payload Too Large";
+    case URI_TOO_LONG:
+      return "414 URI Too Long";
+    case REQUEST_HEADER_FIELDS_TOO_LARGE:
+      return "431 Request Header Fields Too Large";
     case INTERNAL_SERVER_ERROR:
       return "500 Internal Server Error";
     default:
