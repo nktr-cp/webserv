@@ -43,7 +43,7 @@ void HttpResponse::setBody(const std::string &body) { this->body_ = body; }
 
 std::string HttpResponse::encode() const {
   std::ostringstream oss;
-  oss << HTTP_VERSION << " " << this->status_ << " " << http::statusToString(this->status_)
+  oss << VersionInfo::kHttpVersion << " " << this->status_ << " " << http::statusToString(this->status_)
       << "\r\n";
   for (std::map<std::string, std::string>::const_iterator it =
            this->headers_.begin();

@@ -10,14 +10,16 @@
 
 #include "typedefs.hpp"
 
-#define PROGRAM_NAME "webserv"
-#define HTTP_VERSION "HTTP/1.1"
-#define CGI_VERSION "CGI/1.1"
-
-#define HTTP "http://"
-#define HTTPS "https://"
-
 #define GATEWAY_TIMEOUT_SECONDS 10
+
+class VersionInfo {
+ public:
+  static const std::string kProgramName;
+  static const std::string kHttpVersion;
+  static const std::string kCgiVersion;
+  static const std::string kUrlPrefixSecure;
+  static const std::string kUrlPrefix;
+};
 
 enum SocketType { kServer, kClient };
 

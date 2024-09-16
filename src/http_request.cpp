@@ -89,7 +89,7 @@ const char *HttpRequest::parseVersion(const char *req) {
   }
   this->version_ = std::string(req, i);
   if (this->version_.empty() || req[i] != '\r' || req[i + 1] != '\n' ||
-      this->version_ != "HTTP/1.1") {
+      this->version_ != VersionInfo::kHttpVersion) {
     throw http::responseStatusException(BAD_REQUEST);
   }
   return req + i + 2;

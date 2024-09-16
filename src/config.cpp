@@ -119,7 +119,7 @@ void Config::parseError(ServerConfig *server) {
     throw ArgOutOfRange(token);
   }
   token = tokenize(content_);
-  if (token.find(HTTP) != 0 && token.find(HTTPS) != 0 && token[0] != '/')
+  if (token.find(VersionInfo::kUrlPrefix) != 0 && token.find(VersionInfo::kUrlPrefixSecure) != 0 && token[0] != '/')
     token = "/" + token;
   server->addError(code, token);
   token = tokenize(content_);

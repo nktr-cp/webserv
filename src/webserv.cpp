@@ -64,7 +64,11 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        handleClientData(fd);
+        try {
+          handleClientData(fd);
+        } catch (const SysCallFailed &e) {
+          close(fd);
+        }
       }
     }
   }
@@ -108,7 +112,11 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        handleClientData(fd);
+        try {
+          handleClientData(fd);
+        } catch (const SysCallFailed &e) {
+          close(fd);
+        }
       }
     }
   }
