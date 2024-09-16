@@ -1,7 +1,9 @@
-#include "webserv.hpp"
 #include "cgi.hpp"
 
-cgiMaster::cgiMaster(const HttpRequest *request, HttpResponse *response, const Location *location)
+#include "webserv.hpp"
+
+cgiMaster::cgiMaster(const HttpRequest *request, HttpResponse *response,
+                     const Location *location)
     : request_(request), response_(response), cgiPath(location->getCgiPath()) {
   setEnvironment();
   createPipes();
@@ -14,7 +16,7 @@ cgiMaster::~cgiMaster() {
   close(outpipe_[1]);
 }
 
-void cgiMaster::setEnvironment() {//TODO:ない可能性があるものの確認
+void cgiMaster::setEnvironment() {  // TODO:ない可能性があるものの確認
   env_["REQUEST_METHOD"] = http::methodToString(request_->getMethod());
   env_["REQUEST_URI"] = request_->getUri();
   env_["SERVER_SOFTWARE"] = PROGRAM_NAME;
@@ -28,6 +30,7 @@ void cgiMaster::setEnvironment() {//TODO:ない可能性があるものの確認
   env_["PATH_INFO"] = request_->getUri();
   env_["PATH_TRANSLATED"] = request_->getUri();
   env_["QUERY_STRING"] = request_->getQueryAsStr();
+  env_["HTTP_COOKIE"] = request_->getHeader("Cookie");
 }
 
 void cgiMaster::createPipes() {
@@ -49,8 +52,7 @@ void cgiMaster::execute() {
     generateHTTPHeader();
     size_t rnrn = output_.find("\r\n\r\n");
     size_t nn = output_.find("\n\n");
-    if (rnrn == std::string::npos && nn == std::string::npos)
-      return;
+    if (rnrn == std::string::npos && nn == std::string::npos) return;
     size_t pos = rnrn == std::string::npos ? nn + 2 : rnrn + 4;
     response_->setBody(output_.substr(pos));
   }
@@ -59,16 +61,17 @@ void cgiMaster::execute() {
 char **cgiMaster::envToCArray() {
   char **envp = NULL;
   try {
-    envp = new char*[env_.size() + 1];
+    envp = new char *[env_.size() + 1];
     int i = 0;
-    for (std::map<std::string, std::string>::iterator it = env_.begin(); it != env_.end(); ++it) {
+    for (std::map<std::string, std::string>::iterator it = env_.begin();
+         it != env_.end(); ++it) {
       std::string env = it->first + "=" + it->second;
       envp[i] = new char[env.length() + 1];
       strcpy(envp[i], env.c_str());
       ++i;
     }
     envp[i] = NULL;
-  } catch (std::bad_alloc& ba) {
+  } catch (std::bad_alloc &ba) {
     for (int j = 0; j < env_.size(); ++j) {
       delete[] envp[j];
     }
@@ -86,11 +89,10 @@ void cgiMaster::handleChildProcess() {
   close(inpipe_[0]);
   close(outpipe_[1]);
   char cwd[PATH_MAX];
-  if (getcwd(cwd, sizeof(cwd)) == NULL)
-    throw SysCallFailed("getcwd");
+  if (getcwd(cwd, sizeof(cwd)) == NULL) throw SysCallFailed("getcwd");
   std::string fullCgiPath = std::string(cwd) + cgiPath;
 
-  //envvar
+  // envvar
   char **envp = envToCArray();
   execve(fullCgiPath.c_str(), NULL, envp);
   std::exit(EXIT_FAILURE);
@@ -194,13 +196,16 @@ void cgiMaster::generateHTTPHeader() {
       std::istringstream iss(value);
       std::string status;
       iss >> status;
-      unsigned int range[] = {100, 599};//本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
+      unsigned int range[] = {
+          100,
+          599};  // 本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
       try {
         response_->setStatus(static_cast<HttpStatus>(ft::stoui(status, range)));
-      } catch (const std::exception& e) {
+      } catch (const std::exception &e) {
         throw http::responseStatusException(BAD_GATEWAY);
       }
-      if (!(iss >> status) || status != http::statusToString(response_->getStatus()))
+      if (!(iss >> status) ||
+          status != http::statusToString(response_->getStatus()))
         throw http::responseStatusException(BAD_GATEWAY);
     } else
       response_->setHeader(key, value);

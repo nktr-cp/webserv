@@ -6,10 +6,10 @@
 #include <iomanip>
 #include <sstream>
 
+#include "cgi.hpp"
 #include "config.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
-#include "cgi.hpp"
 #include "location.hpp"
 #include "typedefs.hpp"
 #include "utils.hpp"
