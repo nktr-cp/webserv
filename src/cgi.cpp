@@ -26,7 +26,7 @@ void cgiMaster::setEnvironment() {  // TODO:ない可能性があるものの確
   env_["SERVER_PROTOCOL"] = VersionInfo::kHttpVersion;
   env_["SCRIPT_FILENAME"] = cgiPath;
   env_["SCRIPT_NAME"] = cgiPath;
-  env_["CONTENT_LENGTH"] = std::to_string(request_->getBody().length());
+  env_["CONTENT_LENGTH"] = ft::uitost(request_->getBody().length());
   env_["PATH_INFO"] = request_->getUri();
   env_["PATH_TRANSLATED"] = request_->getUri();
   env_["QUERY_STRING"] = request_->getQueryAsStr();
@@ -72,7 +72,7 @@ char **cgiMaster::envToCArray() {
     }
     envp[i] = NULL;
   } catch (std::bad_alloc &ba) {
-    for (int j = 0; j < env_.size(); ++j) {
+    for (size_t j = 0; j < env_.size(); ++j) {
       delete[] envp[j];
     }
     delete[] envp;
@@ -94,7 +94,8 @@ void cgiMaster::handleChildProcess() {
 
   // envvar
   char **envp = envToCArray();
-  execve(fullCgiPath.c_str(), NULL, envp);
+  char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
+  execve(fullCgiPath.c_str(), argv, envp);
   std::exit(EXIT_FAILURE);
 }
 

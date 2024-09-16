@@ -29,7 +29,8 @@ void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
     this->setHeader("Content-Type", "text/html");
-    this->body_ = "<h1>" + std::to_string(status) + " " + http::statusToString(status) + "</h1>";
+    this->body_ = "<h1>" + http::statusToString(status) + " " +
+                  http::statusToString(status) + "</h1>";
   }
 }
 
@@ -43,8 +44,8 @@ void HttpResponse::setBody(const std::string &body) { this->body_ = body; }
 
 std::string HttpResponse::encode() const {
   std::ostringstream oss;
-  oss << VersionInfo::kHttpVersion << " " << this->status_ << " " << http::statusToString(this->status_)
-      << "\r\n";
+  oss << VersionInfo::kHttpVersion << " " << this->status_ << " "
+      << http::statusToString(this->status_) << "\r\n";
   for (std::map<std::string, std::string>::const_iterator it =
            this->headers_.begin();
        it != this->headers_.end(); ++it) {

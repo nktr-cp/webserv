@@ -230,20 +230,17 @@ const std::string &HttpRequest::getQuery(const std::string &key) const {
 const std::string &HttpRequest::getQueryAsStr() const {
   static std::string query;
   query.clear();
-  for (dict::const_iterator it = this->query_.begin(); it != this->query_.end(); it++) {
+  for (dict::const_iterator it = this->query_.begin(); it != this->query_.end();
+       it++) {
     query += it->first + "=" + it->second + "&";
   }
   if (!query.empty()) {
-    query.pop_back();
+    query.erase(query.end() - 1);
   }
   return query;
 }
-const std::string &HttpRequest::getHostName() const {
-  return this->hostName_;
-}
-const std::string &HttpRequest::getHostPort() const {
-  return this->hostPort_;
-}
+const std::string &HttpRequest::getHostName() const { return this->hostName_; }
+const std::string &HttpRequest::getHostPort() const { return this->hostPort_; }
 const std::string &HttpRequest::getVersion() const { return this->version_; }
 const dict &HttpRequest::getHeader() const { return this->headers_; }
 const std::string &HttpRequest::getHeader(const std::string &key) const {

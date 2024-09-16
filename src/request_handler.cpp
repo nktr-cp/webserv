@@ -79,11 +79,13 @@ void RequestHandler::process() {
   }
   std::cerr << "Location:\t" << location_->getName() << std::endl;
   if (location_->isCgi()) {
-    std::cerr << "Handling:\tCGI " << http::methodToString(request_->getMethod()) << std::endl; 
+    std::cerr << "Handling:\tCGI "
+              << http::methodToString(request_->getMethod()) << std::endl;
     handleCGIRequest();
     return;
   }
-  std::cerr << "Handling:\t" << http::methodToString(request_->getMethod()) << std::endl;
+  std::cerr << "Handling:\t" << http::methodToString(request_->getMethod())
+            << std::endl;
   if (!location_->isMethodAllowed(request_->getMethod())) {
     response_->setStatus(METHOD_NOT_ALLOWED);
     return;
@@ -113,7 +115,6 @@ void RequestHandler::process() {
   }
   std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
-
 
 FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
                      bool d)
@@ -198,8 +199,8 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
          << (it->isDirectory ? "/" : "") << "\">" << it->name
          << (it->isDirectory ? "/" : "") << "</a></td>\n"
          << "            <td>" << it->modTime << "</td>\n"
-         << "            <td>"
-         << (it->isDirectory ? "-" : std::to_string(it->size)) << "</td>\n"
+         << "            <td>" << (it->isDirectory ? "-" : ft::uitost(it->size))
+         << "</td>\n"
          << "        </tr>\n";
   }
 
@@ -302,9 +303,10 @@ void RequestHandler::handleStaticPost() {
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
+void RequestHandler::
+    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
-  
+
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);

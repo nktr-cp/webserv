@@ -108,7 +108,7 @@ void Webserv::run() {
       continue;
     }
 
-    for (size_t i = 0; i < nev; i++) {
+    for (int i = 0; i < nev; i++) {
       int fd = events_[i].data.fd;
 
       if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
@@ -133,6 +133,7 @@ void Webserv::run() {
         }
       }
     }
+  }
 #endif
 }
 
@@ -149,9 +150,9 @@ void Webserv::closeConnection(int sock_fd) {
     throw SysCallFailed("kevent delete");
   }
 #elif __linux__
-    if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
-      throw SysCallFailed("epoll_ctl delete");
-    }
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
+    throw SysCallFailed("epoll_ctl delete");
+  }
 #endif
   close(sock_fd);
 }
@@ -180,13 +181,13 @@ void Webserv::handleNewConnection(int server_fd) {
     throw SysCallFailed("kevent add");
   }
 #elif __linux__
-    struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = client_fd;
-    if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-      close(client_fd);
-      throw SysCallFailed("epoll_ctl add");
-    }
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+  ev.data.fd = client_fd;
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+    close(client_fd);
+    throw SysCallFailed("epoll_ctl add");
+  }
 #endif
 }
 

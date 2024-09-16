@@ -45,11 +45,10 @@ std::string statusToString(HttpStatus status) {
 }
 
 responseStatusException::responseStatusException(HttpStatus status)
-    : std::runtime_error(std::to_string(status) + " " + statusToString(status)), status_(status) {}
+    : std::runtime_error(ft::uitost(status) + " " + statusToString(status)),
+      status_(status) {}
 
-HttpStatus responseStatusException::getStatus() const {
-  return this->status_;
-}
+HttpStatus responseStatusException::getStatus() const { return this->status_; }
 
 std::string methodToString(HttpMethod method) {
   switch (method) {
@@ -75,4 +74,4 @@ std::string methodToString(HttpMethod method) {
       return "NONE";
   }
 }
-}
+}  // namespace http

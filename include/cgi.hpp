@@ -1,6 +1,9 @@
 #ifndef CGI_HPP
 #define CGI_HPP
 
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include "http_request.hpp"
 #include "http_response.hpp"
 #include "location.hpp"
