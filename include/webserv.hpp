@@ -19,6 +19,8 @@ class Webserv {
 
   void createServerSockets();
   void sendResponse(const int client_fd, const HttpResponse &response);
+  void handleTimeout();
+  void closeConnection(int sock_fd);
 
 #ifdef __APPLE__
   int kq_;
@@ -31,6 +33,7 @@ class Webserv {
 
   static const int kBufferSize = 1024;
   static const int kMaxEvents = 16;
+  static const int kTimeoutSec = 10;
 
  public:
   Webserv(const std::string &configFile);

@@ -46,13 +46,22 @@ void Webserv::run() {
 
   // Event loop for kqueue
   while (true) {
-    int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, NULL);
+    struct timespec timeout = {kTimeoutSec, 0};
+
+    int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
     if (nev < 0) {
       throw SysCallFailed("kevent");
+    } else if (nev == 0) {
+      handleTimeout();
     }
 
     for (int i = 0; i < nev; i++) {
       int fd = events_[i].ident;
+
+      if (events_[i].flags & EV_EOF) {
+        closeConnection(fd);
+        continue;
+      }
 
       bool isServerSocket = false;
       for (size_t i = 0; i < servers_.size(); i++) {
@@ -64,11 +73,7 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        try {
-          handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-          close(fd);
-        }
+        handleClientData(fd);
       }
     }
   }
@@ -94,13 +99,22 @@ void Webserv::run() {
 
   // Event loop for epoll
   while (true) {
-    int nev = epoll_wait(epoll_fd_, &events_[0], kMaxEvents, -1);
+    int nev =
+        epoll_wait(epoll_fd_, &events_[0], kMaxEvents, kTimeoutSec * 1000);
     if (nev < 0) {
       throw SysCallFailed("epoll_wait");
+    } else if (nev == 0) {
+      handleTimeout();
+      continue;
     }
 
     for (size_t i = 0; i < nev; i++) {
       int fd = events_[i].data.fd;
+
+      if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
+        closeConnection(fd);
+        continue;
+      }
 
       bool isServerSocket = false;
       for (size_t i = 0; i < servers_.size(); i++) {
@@ -115,12 +129,31 @@ void Webserv::run() {
         try {
           handleClientData(fd);
         } catch (const SysCallFailed &e) {
-          close(fd);
+          closeConnection(fd);
         }
       }
     }
-  }
 #endif
+}
+
+void Webserv::handleTimeout() {
+  // 差し向きなにもしない
+  // closeConnection()で不十分ならここでタイムアウトの処理を書く
+}
+
+void Webserv::closeConnection(int sock_fd) {
+#ifdef __APPLE__
+  struct kevent ev;
+  EV_SET(&ev, sock_fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+  if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
+    throw SysCallFailed("kevent delete");
+  }
+#elif __linux__
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
+      throw SysCallFailed("epoll_ctl delete");
+    }
+#endif
+  close(sock_fd);
 }
 
 void Webserv::handleNewConnection(int server_fd) {
@@ -147,13 +180,13 @@ void Webserv::handleNewConnection(int server_fd) {
     throw SysCallFailed("kevent add");
   }
 #elif __linux__
-  struct epoll_event ev;
-  ev.events = EPOLLIN;
-  ev.data.fd = client_fd;
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-    close(client_fd);
-    throw SysCallFailed("epoll_ctl add");
-  }
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = client_fd;
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+      close(client_fd);
+      throw SysCallFailed("epoll_ctl add");
+    }
 #endif
 }
 
