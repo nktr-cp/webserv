@@ -3,12 +3,13 @@
 
 #include "http_request.hpp"
 #include "http_response.hpp"
+#include "location.hpp"
 #include "utils.hpp"
 
 #define BUFFER_SIZE 1024
 
 class cgiMaster {
-private:
+ private:
   void setEnvironment();
   void createPipes();
   void handleChildProcess();
@@ -23,11 +24,12 @@ private:
   pid_t pid_;
   std::string output_;
 
-  char** envToCArray();
+  char **envToCArray();
   void generateHTTPHeader();
 
-public:
-  cgiMaster(const HttpRequest *request, HttpResponse *response, const Location *location);
+ public:
+  cgiMaster(const HttpRequest *request, HttpResponse *response,
+            const Location *location);
   ~cgiMaster();
 
   void execute();
