@@ -17,7 +17,6 @@ struct Cookie {
 
 struct Session {
   std::string id;
-  unsigned int numAccesses;  // prepare easy example の項目のため
   std::time_t lastAccessed;
 
   Session();

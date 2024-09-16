@@ -2,7 +2,7 @@
 
 std::string Cookie::parseCookie(const std::string& raw) {
   // MEMO: keyに対して柔軟にする必要がありそう
-  std::string key = "sid";
+  std::string key = "user_id";
   std::string value = "";
   size_t pos = raw.find(key);
   if (pos != std::string::npos) {
@@ -18,10 +18,10 @@ std::string Cookie::createCookieHeader(const std::string& key,
   return key + "=" + value + "; Path=/; HttpOnly" + "; Max-Age=3600";  // 1 hour
 }
 
-Session::Session() : id(""), numAccesses(0), lastAccessed(time(NULL)) {}
+Session::Session() : id(""), lastAccessed(time(NULL)) {}
 
 Session::Session(const std::string& sessionId)
-    : id(sessionId), numAccesses(0), lastAccessed(time(NULL)) {}
+    : id(sessionId), lastAccessed(time(NULL)) {}
 
 SessionManager::SessionManager() {
   std::srand(static_cast<unsigned int>(time(NULL)));
@@ -33,7 +33,7 @@ std::string SessionManager::generateSessionId() {
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       "abcdefghijklmnopqrstuvwxyz";
 
-  std::string id;
+  std::string id = "";
   for (size_t i = 0; i < kSessionIdLength; ++i) {
     id += sessionIdChars[std::rand() % (sizeof(sessionIdChars) - 1)];
   }
@@ -77,10 +77,6 @@ void SessionManager::setSessionInfo(HttpRequest& request,
   if (session == NULL) {
     session = createSession();
     response.setHeader("Set-Cookie",
-                       cookie.createCookieHeader("sid", session->id));
-  } else {
-    session->numAccesses++;
-    std::cerr << "[Session management Test]: The number of accesses is "
-              << session->numAccesses << " for " << session->id << std::endl;
+                       cookie.createCookieHeader("user_id", session->id));
   }
 }
