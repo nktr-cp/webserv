@@ -74,7 +74,6 @@ void RequestHandler::process() {
     return;
   }
   if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
     return;
   }
   std::cerr << "Location:\t" << location_->getName() << std::endl;
@@ -104,15 +103,19 @@ void RequestHandler::process() {
       response_->setStatus(METHOD_NOT_ALLOWED);
       break;
   }
-  if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
-  }
   std::string errorpage = config_->getErrorPage(response_->getStatus());
   if (!errorpage.empty()) {
     std::cerr << response_->getStatus() << " error:\tredirecting" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
+  try {
+    std::string error = request_->getQuery("error");
+    if (!error.empty()) {
+      const unsigned int range[2] = {100, 599};
+      response_->setStatus(static_cast<HttpStatus>(ft::stoui(error, range)));
+    }
+  } catch (std::exception &e) {} // ignore
   std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
@@ -256,7 +259,6 @@ void RequestHandler::handleStaticGet() {
       if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
         response_->setBody(listing);
-        response_->setHeader("Content-Type", "text/html");
         response_->setStatus(OK);
         return;
       } else {

@@ -1,9 +1,13 @@
 #include "http_response.hpp"
 
-HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {}
+HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {
+  setHeader("Content-Type", "text/html");
+}
 
 HttpResponse::HttpResponse(HttpStatus status)
-    : status_(status), headers_(dict()), body_("") {}
+    : status_(status), headers_(dict()), body_("") {
+  setHeader("Content-Type", "text/html");
+}
 
 HttpResponse::HttpResponse(const HttpResponse &src) {
   this->status_ = src.status_;
@@ -28,7 +32,6 @@ HttpStatus HttpResponse::getStatus() const { return this->status_; }
 void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
-    this->setHeader("Content-Type", "text/html");
     this->body_ = "<h1>" + http::statusToString(status) + " " +
                   http::statusToString(status) + "</h1>";
   }
