@@ -68,7 +68,7 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
 }
 void RequestHandler::process() {
   if (location_->isRedirect()) {
-    std::cerr << "Handling:\tredirect" << std::endl;
+    // std::cerr << "Handling:\tredirect" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", location_->getRedirect());
     return;
@@ -76,15 +76,15 @@ void RequestHandler::process() {
   if (response_->getStatus() != OK) {
     return;
   }
-  std::cerr << "Location:\t" << location_->getName() << std::endl;
+  // std::cerr << "Location:\t" << location_->getName() << std::endl;
   if (location_->isCgi()) {
-    std::cerr << "Handling:\tCGI "
-              << http::methodToString(request_->getMethod()) << std::endl;
+    // std::cerr << "Handling:\tCGI "
+    // << http::methodToString(request_->getMethod()) << std::endl;
     handleCGIRequest();
     return;
   }
-  std::cerr << "Handling:\t" << http::methodToString(request_->getMethod())
-            << std::endl;
+  // std::cerr << "Handling:\t" << http::methodToString(request_->getMethod())
+  // << std::endl;
   if (!location_->isMethodAllowed(request_->getMethod())) {
     response_->setStatus(METHOD_NOT_ALLOWED);
     return;
@@ -105,7 +105,8 @@ void RequestHandler::process() {
   }
   std::string errorpage = config_->getErrorPage(response_->getStatus());
   if (!errorpage.empty()) {
-    std::cerr << response_->getStatus() << " error:\tredirecting" << std::endl;
+    // std::cerr << response_->getStatus() << " error:\tredirecting" <<
+    // std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
@@ -115,7 +116,8 @@ void RequestHandler::process() {
       const unsigned int range[2] = {100, 599};
       response_->setStatus(static_cast<HttpStatus>(ft::stoui(error, range)));
     }
-  } catch (std::exception &e) {} // ignore
+  } catch (std::exception &e) {
+  }  // ignore
   std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
@@ -138,6 +140,10 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
   while ((entry = readdir(dir)) != NULL) {
     std::string filename = entry->d_name;
     std::string fullpath = path + "/" + filename;
+
+    if (filename == "." || filename == "..") {
+      continue;
+    }
 
     if (stat(fullpath.c_str(), &file_stat) == -1) {
       continue;
