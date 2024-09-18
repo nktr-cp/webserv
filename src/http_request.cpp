@@ -9,7 +9,6 @@ const char *HttpRequest::parseMethod(const char *req) {
   return req + len + 1;
 }
 
-#include <iostream>
 const char *HttpRequest::parseUri(const char *req) {
   this->contentLength_ = 0;
   // Parse URI

@@ -118,7 +118,7 @@ void RequestHandler::process() {
     }
   } catch (std::exception &e) {
   }  // ignore
-  std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
+  // std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
 FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,

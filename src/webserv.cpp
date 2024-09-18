@@ -56,6 +56,9 @@ void Webserv::run() {
     }
 
     for (int i = 0; i < nev; i++) {
+      // 接続が詰まるので適当時間待つ、siegeの結果は改善
+      // が、これじゃない感がある
+      usleep(kWaitTime);
       int fd = events_[i].ident;
 
       if (events_[i].flags & EV_EOF) {
@@ -138,8 +141,19 @@ void Webserv::run() {
 }
 
 void Webserv::handleTimeout() {
-  // 差し向きなにもしない
-  // closeConnection()で不十分ならここでタイムアウトの処理を書く
+  time_t currentTime = time(NULL);
+  std::vector<int> connectionsToClose;
+
+  for (std::map<int, time_t>::iterator it = connections_.begin();
+       it != connections_.end(); it++) {
+    if (currentTime - it->second > kTimeoutSec) {
+      connectionsToClose.push_back(it->first);
+    }
+  }
+
+  for (size_t i = 0; i < connectionsToClose.size(); i++) {
+    closeConnection(connectionsToClose[i]);
+  }
 }
 
 void Webserv::closeConnection(int sock_fd) {
@@ -154,6 +168,10 @@ void Webserv::closeConnection(int sock_fd) {
     throw SysCallFailed("epoll_ctl delete");
   }
 #endif
+  connections_.erase(sock_fd);
+  // manより: If how is SHUT_RDWR, further sends and receives will be
+  // disallowed.
+  shutdown(sock_fd, SHUT_RDWR);
   close(sock_fd);
 }
 
@@ -173,6 +191,13 @@ void Webserv::handleNewConnection(int server_fd) {
   int flags = fcntl(client_fd, F_GETFL, 0);
   fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 
+  int opt = 1;
+  if (setsockopt(client_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) ==
+      -1) {
+    close(client_fd);
+    throw SysCallFailed("setsockopt");
+  }
+
 #ifdef __APPLE__
   struct kevent ev;
   EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
@@ -189,9 +214,32 @@ void Webserv::handleNewConnection(int server_fd) {
     throw SysCallFailed("epoll_ctl add");
   }
 #endif
+  connections_[client_fd] = time(NULL);
 }
 
 void Webserv::handleClientData(int client_fd) {
+  // std::string request_data;
+  // ssize_t recv_bytes = 0;
+
+  // while (true) {
+  //   recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
+
+  //   if (recv_bytes < 0) {
+  //     if (errno == EWOULDBLOCK || errno == EAGAIN) {
+  //       // No more data to read at the moment
+  //       break;
+  //     } else {
+  //       throw SysCallFailed("recv");
+  //     }
+  //   } else if (recv_bytes == 0) {
+  //     // Client closed connection
+  //     close(client_fd);
+  //     return;
+  //   }
+
+  //   // Append the received chunk to the request_data string
+  //   request_data.append(buffer_.data(), recv_bytes);
+  // }
   ssize_t recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
   if (recv_bytes <= 0) {
     if (recv_bytes < 0) {
@@ -205,7 +253,7 @@ void Webserv::handleClientData(int client_fd) {
 
   // リクエストをパース
   try {
-    request = HttpRequest(buffer_.data());
+    request = HttpRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
     sendResponse(client_fd, response);
