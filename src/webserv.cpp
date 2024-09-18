@@ -253,7 +253,8 @@ void Webserv::handleClientData(int client_fd) {
 
   // リクエストをパース
   try {
-    request = HttpRequest(request_data.c_str());
+    // request = HttpRequest(request_data.c_str());
+    request = HttpRequest(buffer_.data());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
     sendResponse(client_fd, response);
