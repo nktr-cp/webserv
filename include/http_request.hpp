@@ -12,7 +12,6 @@ class HttpRequest {
  private:
   static const TrieNode<HttpMethod> kMethodTrie;
   static const size_t kMaxHeaderSize;
-  static const size_t kMaxPayloadSize;
   static const size_t kMaxUriSize;
   HttpMethod method_;
   std::string uri_;
@@ -30,6 +29,7 @@ class HttpRequest {
   const char* parseHeader(const char* req);
 
  public:
+  static const size_t kMaxPayloadSize;
   HttpRequest();
   HttpRequest(const char* raw_request);
   HttpRequest(const HttpRequest& src);

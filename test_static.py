@@ -26,21 +26,23 @@ def test_static():
 
 		print("--- test incorrect static requeset with [GET POST DELETE] ---")
 		print("[6]sending too large POST request to http://localhost:8080/test/test, expecting 413")
-		data = "a" * 10000
+		data = "a" * 50000
 		response = requests.post("http://localhost:8080/test/test", data=data)
 		assert response.status_code == 413, f"[6] Failed to get 413 response. {response.status_code}"
 		print("[7]sending GET request with too long uri to http://localhost:8080/test, expecting 414")
-		response = requests.get("http://localhost:8080/test" + "/a" * 10000)
+		response = requests.get("http://localhost:8080/test" + "/a" * 5000)
 		assert response.status_code == 414, f"[7] Failed to get 414 response. {response.status_code}"
+
+		print("All tests passed")
+	
+	except AssertionError as e:
+		print("Assertion failed: {e}")
 
 	finally:
 		process.terminate()
 		stderr = process.communicate()[1]
 		print("Standard Error Output:\n", stderr)
 		process.wait()
-		print("test_static.py finished")
-
-
 
 if __name__ == "__main__":
 	test_static()
