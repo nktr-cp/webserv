@@ -218,43 +218,34 @@ void Webserv::handleNewConnection(int server_fd) {
 }
 
 void Webserv::handleClientData(int client_fd) {
-  // std::string request_data;
-  // ssize_t recv_bytes = 0;
+  std::string request_data;
+  ssize_t recv_bytes = 0;
 
-  // while (true) {
-  //   recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
+  while (true) {
+    recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
 
-  //   if (recv_bytes < 0) {
-  //     if (errno == EWOULDBLOCK || errno == EAGAIN) {
-  //       // No more data to read at the moment
-  //       break;
-  //     } else {
-  //       throw SysCallFailed("recv");
-  //     }
-  //   } else if (recv_bytes == 0) {
-  //     // Client closed connection
-  //     close(client_fd);
-  //     return;
-  //   }
-
-  //   // Append the received chunk to the request_data string
-  //   request_data.append(buffer_.data(), recv_bytes);
-  // }
-  ssize_t recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
-  if (recv_bytes <= 0) {
     if (recv_bytes < 0) {
-      throw SysCallFailed("recv");
+      if (errno == EWOULDBLOCK || errno == EAGAIN) {
+        // No more data to read at the moment
+        break;
+      } else {
+        throw SysCallFailed("recv");
+      }
+    } else if (recv_bytes == 0) {
+      // Client closed connection
+      close(client_fd);
+      return;
     }
-    close(client_fd);
-    return;
+
+    // Append the received chunk to the request_data string
+    request_data.append(buffer_.data(), recv_bytes);
   }
   HttpRequest request;
   HttpResponse response;
 
   // リクエストをパース
   try {
-    // request = HttpRequest(request_data.c_str());
-    request = HttpRequest(buffer_.data());
+    request = HttpRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
     sendResponse(client_fd, response);
