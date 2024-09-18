@@ -170,6 +170,7 @@ void Webserv::run() {
           closeConnection(fd);
         } catch (const SysCallFailed &e) {
           std::cerr << e.what() << std::endl;
+        }
       }
     }
   }
