@@ -257,6 +257,9 @@ void Webserv::handleNewConnection(int server_fd) {
 void Webserv::handleClientData(int client_fd) {
   std::string request_data;
   ssize_t recv_bytes = 0;
+  size_t total_bytes = 0;
+  HttpRequest request;
+  HttpResponse response;
 
   while (true) {
     recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
@@ -274,11 +277,15 @@ void Webserv::handleClientData(int client_fd) {
       return;
     }
 
+    if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
+      response.setStatus(PAYLOAD_TOO_LARGE);
+      sendResponse(client_fd, response);
+      return;
+    }
+    total_bytes += recv_bytes;
     // Append the received chunk to the request_data string
     request_data.append(buffer_.data(), recv_bytes);
   }
-  HttpRequest request;
-  HttpResponse response;
 
   // リクエストをパース
   try {

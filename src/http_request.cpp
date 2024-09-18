@@ -173,13 +173,8 @@ HttpRequest::HttpRequest(const char *raw_request) {
     raw_request += 2;
     try {
       this->body_ = std::string(raw_request);
-    } catch (std::length_error &e) {
-      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
     } catch (std::bad_alloc &e) {
-      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
-    }
-    if (this->body_.size() >= kMaxPayloadSize) {
-      throw http::responseStatusException(PAYLOAD_TOO_LARGE);
+      throw http::responseStatusException(INTERNAL_SERVER_ERROR);
     }
   } else {
     throw http::responseStatusException(BAD_REQUEST);
@@ -217,7 +212,7 @@ TrieNode<HttpMethod> initialize_method_trie() {
 }
 const TrieNode<HttpMethod> HttpRequest::kMethodTrie = initialize_method_trie();
 const size_t HttpRequest::kMaxHeaderSize = 8192;
-const size_t HttpRequest::kMaxPayloadSize = INT_MAX;
+const size_t HttpRequest::kMaxPayloadSize = 16384;
 const size_t HttpRequest::kMaxUriSize = 1024;
 
 HttpMethod HttpRequest::getMethod() const { return this->method_; }
