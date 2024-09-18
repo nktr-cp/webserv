@@ -1,6 +1,8 @@
 #include "utils.hpp"
 
-ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {}
+ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {
+  std::cerr << msg << std::endl;
+}
 
 const std::string ExtraErrors::ProgramNamePrefix = VersionInfo::kProgramName + std::string(": ");
 

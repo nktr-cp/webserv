@@ -59,7 +59,6 @@ void Webserv::run() {
           handleTimeout();
         }
     } catch (const SysCallFailed& e) {
-        std::cerr << e.what() << std::endl;
         continue;
     }
 
@@ -72,9 +71,7 @@ void Webserv::run() {
       if (events_[i].flags & EV_EOF) {
         try {
           closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-          std::cerr << e.what() << std::endl;
-        }
+        } catch (const SysCallFailed &e) {}
         continue;
       }
 
@@ -84,9 +81,7 @@ void Webserv::run() {
           isServerSocket = true;
           try {
             handleNewConnection(fd);
-          } catch (const SysCallFailed &e) {
-            std::cerr << e.what() << std::endl;
-          }
+          } catch (const SysCallFailed &e) {}
           break;
         }
       }
@@ -94,9 +89,10 @@ void Webserv::run() {
       if (!isServerSocket) {
         try {
           handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-          std::cerr << e.what() << std::endl;
-        }
+        } catch (const SysCallFailed &e) {}
+        try {
+          closeConnection(fd);
+        } catch (const SysCallFailed &e) {}
       }
     }
   }
@@ -131,7 +127,6 @@ void Webserv::run() {
         handleTimeout();
       }
     } catch (const SysCallFailed &e) {
-      std::cerr << e.what() << std::endl;
       continue;
     }
 
@@ -141,9 +136,7 @@ void Webserv::run() {
       if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
         try {
           closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-          std::cerr << e.what() << std::endl;
-        }
+        } catch (const SysCallFailed &e) {}
         continue;
       }
 
@@ -153,9 +146,7 @@ void Webserv::run() {
           isServerSocket = true;
           try {
             handleNewConnection(fd);
-          } catch (const SysCallFailed &e) {
-            std::cerr << e.what() << std::endl;
-          }
+          } catch (const SysCallFailed &e) {}
           break;
         }
       }
@@ -163,14 +154,10 @@ void Webserv::run() {
       if (!isServerSocket) {
         try {
           handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-          std::cerr << e.what() << std::endl;
-        }
+        } catch (const SysCallFailed &e) {}
         try {
           closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-          std::cerr << e.what() << std::endl;
-        }
+        } catch (const SysCallFailed &e) {}
       }
     }
   }
