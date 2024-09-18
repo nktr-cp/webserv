@@ -13,11 +13,13 @@ int main(int ac, char **av) {
     configFile = av[1];
   }
 
+  Webserv webserv;
   try {
-    Webserv webserv(configFile);
-    webserv.run();
+    webserv = Webserv(configFile);
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }
+  webserv.run();
+  return 0;
 }

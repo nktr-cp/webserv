@@ -32,7 +32,7 @@ HttpStatus HttpResponse::getStatus() const { return this->status_; }
 void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
-    this->body_ = "<h1>" + http::statusToString(status) + " " +
+    this->body_ = "<h1>" + std::to_string(status) + " " +
                   http::statusToString(status) + "</h1>";
   }
 }

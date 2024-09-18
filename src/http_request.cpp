@@ -243,6 +243,12 @@ const std::string &HttpRequest::getHostPort() const { return this->hostPort_; }
 const std::string &HttpRequest::getVersion() const { return this->version_; }
 const dict &HttpRequest::getHeader() const { return this->headers_; }
 const std::string &HttpRequest::getHeader(const std::string &key) const {
-  return this->headers_.at(key);
+  dict::const_iterator it = this->headers_.find(key);
+  if (it != this->headers_.end()) {
+    return it->second;
+  } else {
+    static const std::string e;
+    return e;
+  }
 }
 const std::string &HttpRequest::getBody() const { return this->body_; }

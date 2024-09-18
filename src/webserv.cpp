@@ -1,5 +1,7 @@
 #include "webserv.hpp"
 
+Webserv::Webserv() {}
+
 Webserv::Webserv(const std::string &configFile) {
   Config config(configFile);
 
@@ -48,11 +50,17 @@ void Webserv::run() {
   while (true) {
     struct timespec timeout = {kTimeoutSec, 0};
 
-    int nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
-    if (nev < 0) {
-      throw SysCallFailed("kevent");
-    } else if (nev == 0) {
-      handleTimeout();
+  int nev;
+    try {
+        nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
+        if (nev < 0) {
+          throw SysCallFailed("kevent");
+        } else if (nev == 0) {
+          handleTimeout();
+        }
+    } catch (const SysCallFailed& e) {
+        std::cerr << e.what() << std::endl;
+        continue;
     }
 
     for (int i = 0; i < nev; i++) {
@@ -62,7 +70,11 @@ void Webserv::run() {
       int fd = events_[i].ident;
 
       if (events_[i].flags & EV_EOF) {
-        closeConnection(fd);
+        try {
+          closeConnection(fd);
+        } catch (const SysCallFailed &e) {
+          std::cerr << e.what() << std::endl;
+        }
         continue;
       }
 
@@ -70,13 +82,21 @@ void Webserv::run() {
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
           isServerSocket = true;
-          handleNewConnection(fd);
+          try {
+            handleNewConnection(fd);
+          } catch (const SysCallFailed &e) {
+            std::cerr << e.what() << std::endl;
+          }
           break;
         }
       }
 
       if (!isServerSocket) {
-        handleClientData(fd);
+        try {
+          handleClientData(fd);
+        } catch (const SysCallFailed &e) {
+          std::cerr << e.what() << std::endl;
+        }
       }
     }
   }
@@ -104,10 +124,14 @@ void Webserv::run() {
   while (true) {
     int nev =
         epoll_wait(epoll_fd_, &events_[0], kMaxEvents, kTimeoutSec * 1000);
-    if (nev < 0) {
-      throw SysCallFailed("epoll_wait");
-    } else if (nev == 0) {
-      handleTimeout();
+    try {
+      if (nev < 0) {
+        throw SysCallFailed("epoll_wait");
+      } else if (nev == 0) {
+        handleTimeout();
+      }
+    } catch (const SysCallFailed &e) {
+      std::cerr << e.what() << std::endl;
       continue;
     }
 
@@ -115,7 +139,11 @@ void Webserv::run() {
       int fd = events_[i].data.fd;
 
       if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
-        closeConnection(fd);
+        try {
+          closeConnection(fd);
+        } catch (const SysCallFailed &e) {
+          std::cerr << e.what() << std::endl;
+        }
         continue;
       }
 
@@ -123,7 +151,11 @@ void Webserv::run() {
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
           isServerSocket = true;
-          handleNewConnection(fd);
+          try {
+            handleNewConnection(fd);
+          } catch (const SysCallFailed &e) {
+            std::cerr << e.what() << std::endl;
+          }
           break;
         }
       }
@@ -132,8 +164,12 @@ void Webserv::run() {
         try {
           handleClientData(fd);
         } catch (const SysCallFailed &e) {
-          closeConnection(fd);
+          std::cerr << e.what() << std::endl;
         }
+        try {
+          closeConnection(fd);
+        } catch (const SysCallFailed &e) {
+          std::cerr << e.what() << std::endl;
       }
     }
   }

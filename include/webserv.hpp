@@ -40,6 +40,7 @@ class Webserv {
   static const int kWaitTime = 1000;
 
  public:
+  Webserv();
   Webserv(const std::string &configFile);
 
   void handleNewConnection(int server_fd);
