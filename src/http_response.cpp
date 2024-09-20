@@ -33,7 +33,20 @@ void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
     std::stringstream ss;
-    ss << "<h1>" << status << " " << http::statusToString(status) << "</h1>";
+    ss << "<html>";
+    ss << "<head><title>" << status << " " << http::statusToString(status)
+       << "</title></head>";
+    ss << "<body>";
+    ss << "<center><h1>" << status << " " << http::statusToString(status) << "</h1></center>";
+    ss << "<hr><center>" << VersionInfo::kProgramName << "/" << VersionInfo::kProgramVersion << "</center>";
+    ss << "</body>";
+    ss << "</html>";
+    ss << "<!--";
+    for (int i = ss.str().length(); i < FRIENDLY_ERROR_PAGE_LENGTH;) {
+      ss << VersionInfo::kProgramName;
+      i += VersionInfo::kProgramName.length();
+    }
+    ss << "-->";
     this->body_ = ss.str();
   }
 }

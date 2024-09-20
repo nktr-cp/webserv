@@ -50,7 +50,7 @@ void Webserv::run() {
   while (true) {
     struct timespec timeout = {kTimeoutSec, 0};
 
-  int nev;
+    int nev;
     try {
         nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
         if (nev < 0) {
@@ -63,9 +63,6 @@ void Webserv::run() {
     }
 
     for (int i = 0; i < nev; i++) {
-      // 接続が詰まるので適当時間待つ、siegeの結果は改善
-      // が、これじゃない感がある
-      usleep(kWaitTime);
       int fd = events_[i].ident;
 
       if (events_[i].flags & EV_EOF) {

@@ -11,10 +11,12 @@
 #include "typedefs.hpp"
 
 #define GATEWAY_TIMEOUT_SECONDS 10
+#define FRIENDLY_ERROR_PAGE_LENGTH 512
 
 class VersionInfo {
  public:
   static const std::string kProgramName;
+  static const std::string kProgramVersion;
   static const std::string kHttpVersion;
   static const std::string kCgiVersion;
   static const std::string kUrlPrefixSecure;
