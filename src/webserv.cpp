@@ -37,7 +37,7 @@ void Webserv::run() {
   // Register server sockets with kqueue
   for (size_t i = 0; i < servers_.size(); i++) {
     struct kevent ev;
-    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
+    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
     if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
       throw SysCallFailed("kevent add");
     }
@@ -48,7 +48,7 @@ void Webserv::run() {
 
   // Event loop for kqueue
   while (true) {
-    struct timespec timeout = {kTimeoutSec, 0};
+        struct timespec timeout = {kTimeoutSec, 0};
 
     int nev;
     try {
@@ -64,10 +64,10 @@ void Webserv::run() {
 
     for (int i = 0; i < nev; i++) {
       int fd = events_[i].ident;
-
+      
       if (events_[i].flags & EV_EOF) {
         try {
-          closeConnection(fd);
+                    closeConnection(fd);
         } catch (const SysCallFailed &e) {}
         continue;
       }
@@ -76,7 +76,7 @@ void Webserv::run() {
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
           isServerSocket = true;
-          try {
+                    try {
             handleNewConnection(fd);
           } catch (const SysCallFailed &e) {}
           break;
@@ -84,7 +84,7 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        try {
+                try {
           handleClientData(fd);
         } catch (const SysCallFailed &e) {}
         try {
@@ -246,7 +246,7 @@ void Webserv::handleClientData(int client_fd) {
     recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
 
     if (recv_bytes < 0) {
-      break;
+        break;
     } else if (recv_bytes == 0) {
       // Client closed connection
       close(client_fd);
