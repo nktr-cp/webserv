@@ -37,7 +37,7 @@ void Webserv::run() {
   // Register server sockets with kqueue
   for (size_t i = 0; i < servers_.size(); i++) {
     struct kevent ev;
-    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
+    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
     if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
       throw SysCallFailed("kevent add");
     }
@@ -101,7 +101,7 @@ void Webserv::run() {
 
   // Register server sockets with epoll
   struct epoll_event ev;
-  ev.events = EPOLLIN;
+  ev.events = EPOLLIN | EPOLLET;
   for (size_t i = 0; i < servers_.size(); i++) {
     ev.data.fd = servers_[i].getServerFd();
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, servers_[i].getServerFd(), &ev) ==
@@ -203,10 +203,7 @@ void Webserv::handleNewConnection(int server_fd) {
       accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr),
              &client_len);
   if (client_fd == -1) {
-    if (errno != EWOULDBLOCK && errno != EAGAIN) {
-      throw SysCallFailed("accept");
-    }
-    return;
+    throw SysCallFailed("accept");
   }
 
   int flags = fcntl(client_fd, F_GETFL, 0);
@@ -221,14 +218,14 @@ void Webserv::handleNewConnection(int server_fd) {
 
 #ifdef __APPLE__
   struct kevent ev;
-  EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+  EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
   if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
     close(client_fd);
     throw SysCallFailed("kevent add");
   }
 #elif __linux__
   struct epoll_event ev;
-  ev.events = EPOLLIN;
+  ev.events = EPOLLIN | EPOLLET;
   ev.data.fd = client_fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
     close(client_fd);
@@ -249,12 +246,7 @@ void Webserv::handleClientData(int client_fd) {
     recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
 
     if (recv_bytes < 0) {
-      if (errno == EWOULDBLOCK || errno == EAGAIN) {
-        // No more data to read at the moment
-        break;
-      } else {
-        throw SysCallFailed("recv");
-      }
+      break;
     } else if (recv_bytes == 0) {
       // Client closed connection
       close(client_fd);
