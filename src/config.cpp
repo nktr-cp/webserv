@@ -1,16 +1,14 @@
 #include "config.hpp"
 
 bool Config::isDirective(const std::string &token) {
-  if (token == SERVER_DIRECTIVE || token == LOCATION_DIRECTIVE ||
-      token == ERROR_PAGE_DIRECTIVE || token == MAX_BODY_SIZE_DIRECTIVE ||
-      token == HOST_DIRECTIVE || token == PORT_NUMBER_DIRECTIVE ||
-      token == SERVER_NAME_DIRECTIVE || token == METHODS_DIRECTIVE ||
-      token == ROOT_DIRECTORY_DIRECTIVE || token == AUTOINDEX_DIRECTIVE ||
-      token == CGI_DIRECTIVE || token == INDEX_DIRECTIVE ||
-      token == EXTENSIONS_DIRECTIVE || token == UPLOAD_PATH_DIRECTIVE ||
-      token == REDIRECT_DIRECTIVE)
-    return true;
-  return false;  // 最低の書き方、setを使おうとしたがクラッシュを直せなかったので暫定
+  return (token == SERVER_DIRECTIVE || token == LOCATION_DIRECTIVE ||
+          token == ERROR_PAGE_DIRECTIVE || token == MAX_BODY_SIZE_DIRECTIVE ||
+          token == HOST_DIRECTIVE || token == PORT_NUMBER_DIRECTIVE ||
+          token == SERVER_NAME_DIRECTIVE || token == METHODS_DIRECTIVE ||
+          token == ROOT_DIRECTORY_DIRECTIVE || token == AUTOINDEX_DIRECTIVE ||
+          token == CGI_DIRECTIVE || token == INDEX_DIRECTIVE ||
+          token == EXTENSIONS_DIRECTIVE || token == UPLOAD_PATH_DIRECTIVE ||
+          token == REDIRECT_DIRECTIVE);
 }
 
 static std::string tokenize(const std::string &content) {
@@ -121,6 +119,10 @@ void Config::parseError(ServerConfig *server) {
     throw ArgOutOfRange(token);
   }
   token = tokenize(content_);
+  if (token.find(VersionInfo::kUrlPrefix) != 0 &&
+      token.find(VersionInfo::kUrlPrefixSecure) != 0 && token[0] != '/')
+    token = "/" + token;
+  token += "?error=" + ft::uitost(code);
   server->addError(code, token);
   token = tokenize(content_);
   if (token != ";") throw SyntaxError(token);

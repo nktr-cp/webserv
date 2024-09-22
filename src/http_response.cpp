@@ -1,30 +1,13 @@
 #include "http_response.hpp"
 
-namespace Http {
-std::string statusToString(HttpStatus status) {
-  switch (status) {
-    case OK:
-      return "200 OK";
-    case BAD_REQUEST:
-      return "400 Bad Request";
-    case FORBIDDEN:
-      return "403 Forbidden";
-    case NOT_FOUND:
-      return "404 Not Found";
-    case INTERNAL_SERVER_ERROR:
-      return "500 Internal Server Error";
-    default:
-      return "500 Internal Server Error";
-  }
+HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {
+  setHeader("Content-Type", "text/html");
 }
-}  // namespace Http
-
-const std::string HttpResponse::kHttpVersion = "HTTP/1.1";
-
-HttpResponse::HttpResponse() : status_(OK), headers_(dict()), body_("") {}
 
 HttpResponse::HttpResponse(HttpStatus status)
-    : status_(status), headers_(dict()), body_("") {}
+    : status_(status), headers_(dict()), body_("") {
+  setHeader("Content-Type", "text/html");
+}
 
 HttpResponse::HttpResponse(const HttpResponse &src) {
   this->status_ = src.status_;
@@ -49,8 +32,24 @@ HttpStatus HttpResponse::getStatus() const { return this->status_; }
 void HttpResponse::setStatus(HttpStatus status) {
   this->status_ = status;
   if (body_.empty()) {
-    this->setHeader("Content-Type", "text/html");
-    this->body_ = "<h1>" + Http::statusToString(status) + "</h1>";
+    std::stringstream ss;
+    ss << "<html>";
+    ss << "<head><title>" << status << " " << http::statusToString(status)
+       << "</title></head>";
+    ss << "<body>";
+    ss << "<center><h1>" << status << " " << http::statusToString(status)
+       << "</h1></center>";
+    ss << "<hr><center>" << VersionInfo::kProgramName << "/"
+       << VersionInfo::kProgramVersion << "</center>";
+    ss << "</body>";
+    ss << "</html>";
+    ss << "<!--";
+    for (int i = ss.str().length(); i < FRIENDLY_ERROR_PAGE_LENGTH;) {
+      ss << VersionInfo::kProgramName;
+      i += VersionInfo::kProgramName.length();
+    }
+    ss << "-->";
+    this->body_ = ss.str();
   }
 }
 
@@ -64,8 +63,8 @@ void HttpResponse::setBody(const std::string &body) { this->body_ = body; }
 
 std::string HttpResponse::encode() const {
   std::ostringstream oss;
-  oss << this->kHttpVersion << " " << Http::statusToString(this->status_)
-      << "\r\n";
+  oss << VersionInfo::kHttpVersion << " " << this->status_ << " "
+      << http::statusToString(this->status_) << "\r\n";
   for (std::map<std::string, std::string>::const_iterator it =
            this->headers_.begin();
        it != this->headers_.end(); ++it) {

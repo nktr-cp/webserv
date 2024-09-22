@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include "cgi.hpp"
 #include "config.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
@@ -26,9 +27,11 @@ class RequestHandler {
  private:
   HttpRequest *request_;
   HttpResponse *response_;
+  const ServerConfig *config_;
   const Location *location_;
   std::string rootPath_;
   std::string relativePath_;
+  // CGI
 
   std::string getMimeType(const std::string &path);
   std::string generateDirectoryListing(const std::string &path);
@@ -36,6 +39,7 @@ class RequestHandler {
   void handleStaticGet();
   void handleStaticPost();
   void handleStaticDelete();
+  void handleCGIRequest();
 
  public:
   RequestHandler();

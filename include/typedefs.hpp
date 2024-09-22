@@ -3,10 +3,25 @@
 
 #define MAX_BODY_SIZE 1000000
 
+#include <iostream>
 #include <map>
+#include <string>
 #include <vector>
 
-#include "utils.hpp"
+#include "typedefs.hpp"
+
+#define GATEWAY_TIMEOUT_SECONDS 10
+#define FRIENDLY_ERROR_PAGE_LENGTH 512
+
+class VersionInfo {
+ public:
+  static const std::string kProgramName;
+  static const std::string kProgramVersion;
+  static const std::string kHttpVersion;
+  static const std::string kCgiVersion;
+  static const std::string kUrlPrefixSecure;
+  static const std::string kUrlPrefix;
+};
 
 enum SocketType { kServer, kClient };
 
@@ -73,11 +88,14 @@ enum HttpStatus {
 enum HttpMethod {
   NONE = 0,
   GET = 1,
-  POST = 2,
-  DELETE = 4,
-  HEAD,
-  OPTIONS,
-  PUT,
+  HEAD = 2,
+  POST = 4,
+  PUT = 8,
+  DELETE = 16,
+  CONNECT = 32,
+  OPTIONS = 64,
+  TRACE = 128,
+  PATCH = 256,
 };
 
 #endif  // TYPEDEFS_HPP

@@ -11,8 +11,13 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
                                ServerConfig &config)
     : request_(&request),
       response_(&response),
+      config_(&config),
       rootPath_(""),
       relativePath_("") {
+  if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size()) {
+    response_->setStatus(PAYLOAD_TOO_LARGE);
+    return;
+  }
   const std::vector<Location> &locations = config.getLocations();
   int max_count = -1;
   const Location *location = NULL;
@@ -26,7 +31,7 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       if (path[cur] != uri[cur]) {
         break;
       }
-      if (path[i] == '/' && (int)cur > max_count) {
+      if (path[cur] == '/' && (int)cur > max_count) {
         max_count = cur;
         location = &locations[i];
       }
@@ -61,10 +66,27 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
   }
   return *this;
 }
-
 void RequestHandler::process() {
+  if (location_->isRedirect()) {
+    // std::cerr << "Handling:\tredirect" << std::endl;
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", location_->getRedirect());
+    return;
+  }
   if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
+    return;
+  }
+  // std::cerr << "Location:\t" << location_->getName() << std::endl;
+  if (location_->isCgi()) {
+    // std::cerr << "Handling:\tCGI "
+    // << http::methodToString(request_->getMethod()) << std::endl;
+    handleCGIRequest();
+    return;
+  }
+  // std::cerr << "Handling:\t" << http::methodToString(request_->getMethod())
+  // << std::endl;
+  if (!location_->isMethodAllowed(request_->getMethod())) {
+    response_->setStatus(METHOD_NOT_ALLOWED);
     return;
   }
   switch (request_->getMethod()) {
@@ -81,9 +103,22 @@ void RequestHandler::process() {
       response_->setStatus(METHOD_NOT_ALLOWED);
       break;
   }
-  if (response_->getStatus() != OK) {
-    response_->setHeader("Content-Type", "text/html");
+  std::string errorpage = config_->getErrorPage(response_->getStatus());
+  if (!errorpage.empty()) {
+    // std::cerr << response_->getStatus() << " error:\tredirecting" <<
+    // std::endl;
+    response_->setStatus(FOUND);
+    response_->setHeader("Location", errorpage);
   }
+  try {
+    std::string error = request_->getQuery("error");
+    if (!error.empty()) {
+      const unsigned int range[2] = {100, 599};
+      response_->setStatus(static_cast<HttpStatus>(ft::stoui(error, range)));
+    }
+  } catch (std::exception &e) {
+  }  // ignore
+  // std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
 FileEntry::FileEntry(const std::string &n, const std::string &m, long long s,
@@ -105,6 +140,10 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
   while ((entry = readdir(dir)) != NULL) {
     std::string filename = entry->d_name;
     std::string fullpath = path + "/" + filename;
+
+    if (filename == "." || filename == "..") {
+      continue;
+    }
 
     if (stat(fullpath.c_str(), &file_stat) == -1) {
       continue;
@@ -169,8 +208,8 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path) {
          << (it->isDirectory ? "/" : "") << "\">" << it->name
          << (it->isDirectory ? "/" : "") << "</a></td>\n"
          << "            <td>" << it->modTime << "</td>\n"
-         << "            <td>"
-         << (it->isDirectory ? "-" : ft::to_string(it->size)) << "</td>\n"
+         << "            <td>" << (it->isDirectory ? "-" : ft::uitost(it->size))
+         << "</td>\n"
          << "        </tr>\n";
   }
 
@@ -226,11 +265,13 @@ void RequestHandler::handleStaticGet() {
       if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
         response_->setBody(listing);
-        response_->setHeader("Content-Type", "text/html");
         response_->setStatus(OK);
         return;
       } else {
-        response_->setStatus(FORBIDDEN);
+        if (!indexFiles.empty())
+          response_->setStatus(NOT_FOUND);
+        else
+          response_->setStatus(FORBIDDEN);
         return;
       }
     }
@@ -273,6 +314,7 @@ void RequestHandler::handleStaticPost() {
 void RequestHandler::
     handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
+
   Result<bool> is_file = filemanip::pathExists(path);
   if (!is_file.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -282,6 +324,7 @@ void RequestHandler::
     response_->setStatus(NOT_FOUND);
     return;
   }
+
   Result<bool> is_dir = filemanip::isDir(path);
   if (!is_dir.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -291,10 +334,7 @@ void RequestHandler::
     response_->setStatus(BAD_REQUEST);
     return;
   }
-  if (remove(path.c_str()) != 0) {
-    response_->setStatus(INTERNAL_SERVER_ERROR);
-    return;
-  }
+
   Result<bool> is_deletable = filemanip::isDeletable(path);
   if (!is_deletable.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
@@ -304,5 +344,24 @@ void RequestHandler::
     response_->setStatus(FORBIDDEN);
     return;
   }
+
+  if (remove(path.c_str()) != 0) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  }
+
   response_->setStatus(OK);
+}
+
+void RequestHandler::handleCGIRequest() {
+  cgiMaster cgi(request_, response_, location_);
+  try {
+    cgi.execute();
+  } catch (SysCallFailed &e) {
+    response_->setStatus(INTERNAL_SERVER_ERROR);
+    return;
+  } catch (http::responseStatusException &e) {
+    response_->setStatus(e.getStatus());
+    return;
+  }
 }

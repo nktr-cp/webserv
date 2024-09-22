@@ -4,7 +4,7 @@ void Server::createSocket() {
   // Create a socket file descriptor
   // AF_INET: IPv4, SOCK_STREAM: TCP
   if ((server_fd_ = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-    throw std::runtime_error("Socket creation failed");
+    throw SysCallFailed("socket");
   }
 
   // Set socket options
@@ -13,7 +13,7 @@ void Server::createSocket() {
   int opt = 1;
   if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
     close(server_fd_);
-    throw std::runtime_error("Setsockopt failed");
+    throw SysCallFailed("setsockopt");
   }
 
   // Configure server address structure
@@ -27,14 +27,14 @@ void Server::createSocket() {
   if (bind(server_fd_, reinterpret_cast<struct sockaddr*>(&address_),
            sizeof(address_)) < 0) {
     close(server_fd_);
-    throw std::runtime_error("Bind failed");
+    throw SysCallFailed("bind");
   }
 
   // Start listening for client connections
   // second argument is the maximum length of the queue of pending connections
   if (listen(server_fd_, SOMAXCONN) < 0) {
     close(server_fd_);
-    throw std::runtime_error("Listen failed");
+    throw SysCallFailed("listen");
   }
 
   // Set the socket to non-blocking mode

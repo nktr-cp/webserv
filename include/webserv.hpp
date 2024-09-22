@@ -7,6 +7,8 @@
 #include <sys/epoll.h>
 #endif
 
+#include <sys/time.h>
+
 #include <stdexcept>
 #include <string>
 
@@ -16,9 +18,12 @@
 class Webserv {
  private:
   std::vector<Server> servers_;
-  void parseConfig(const std::string &configFile);
+  std::map<int, time_t> connections_;
 
   void createServerSockets();
+  void sendResponse(const int client_fd, const HttpResponse &response);
+  void handleTimeout();
+  void closeConnection(int sock_fd);
 
 #ifdef __APPLE__
   int kq_;
@@ -29,10 +34,13 @@ class Webserv {
 #endif
   std::vector<char> buffer_;
 
-  static const int kBufferSize = 1024;
+  static const int kBufferSize = 1;
   static const int kMaxEvents = 16;
+  static const int kTimeoutSec = 120;
+  static const int kWaitTime = 1000;
 
  public:
+  Webserv();
   Webserv(const std::string &configFile);
 
   void handleNewConnection(int server_fd);
