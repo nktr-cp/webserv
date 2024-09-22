@@ -20,7 +20,9 @@ void Location::setRoot(const std::string& root) { this->root_ = root; }
 
 void Location::setAutoindex(bool autoindex) { this->autoindex_ = autoindex; }
 
-void Location::addIndex(const std::string& index) { this->index_.push_back(index); }
+void Location::addIndex(const std::string& index) {
+  this->index_.push_back(index);
+}
 
 void Location::addExtension(const std::string& extension) {
   this->extensions_.push_back(extension);
@@ -48,31 +50,23 @@ const std::string& Location::getRoot() const { return this->root_; }
 
 bool Location::isAutoIndex() const { return this->autoindex_; }
 
-const std::vector<std::string>& Location::getIndex() const { return this->index_; }
+const std::vector<std::string>& Location::getIndex() const {
+  return this->index_;
+}
 
 const std::vector<std::string>& Location::getExtensions() const {
   return this->extensions_;
 }
 
-const std::string& Location::getUploadPath() const {
-  return this->upoadPath_;
-}
+const std::string& Location::getUploadPath() const { return this->upoadPath_; }
 
-const std::string& Location::getRedirect() const {
-  return this->redirect_;
-}
+const std::string& Location::getRedirect() const { return this->redirect_; }
 
-const std::string& Location::getCgiPath() const {
-  return this->cgiPath_;
-}
+const std::string& Location::getCgiPath() const { return this->cgiPath_; }
 
-bool Location::isCgi() const {
-  return !this->cgiPath_.empty();
-}
+bool Location::isCgi() const { return !this->cgiPath_.empty(); }
 
-bool Location::isRedirect() const {
-  return !this->redirect_.empty();
-}
+bool Location::isRedirect() const { return !this->redirect_.empty(); }
 
 void Location::print() {
   std::cout << "Name: " << this->name_ << std::endl;

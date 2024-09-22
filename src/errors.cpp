@@ -4,7 +4,8 @@ ExtraErrors::ExtraErrors(const std::string& msg) : std::runtime_error(msg) {
   std::cerr << msg << std::endl;
 }
 
-const std::string ExtraErrors::ProgramNamePrefix = VersionInfo::kProgramName + std::string(": ");
+const std::string ExtraErrors::ProgramNamePrefix =
+    VersionInfo::kProgramName + std::string(": ");
 
 SyntaxError::SyntaxError(const std::string& token)
     : ExtraErrors(ErrMsgWrapper(token)) {}
@@ -17,7 +18,7 @@ std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
          token + std::string("'");
 }
 
-SysCallFailed::SysCallFailed(const std::string &scname)
+SysCallFailed::SysCallFailed(const std::string& scname)
     : ExtraErrors(ErrMsgWrapper(scname)) {}
 
 const std::string SysCallFailed::ErrorMessage = strerror(errno);

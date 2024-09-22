@@ -3,13 +3,9 @@
 ServerConfig::ServerConfig()
     : host_(""), port_(""), serverName_(""), maxBodySize_(MAX_BODY_SIZE) {}
 
-void ServerConfig::setHost(const std::string& host) {
-  this->host_ = host;
-}
+void ServerConfig::setHost(const std::string& host) { this->host_ = host; }
 
-void ServerConfig::setPort(const std::string& port) {
-  this->port_ = port;
-}
+void ServerConfig::setPort(const std::string& port) { this->port_ = port; }
 
 void ServerConfig::setServerName(const std::string& serverName) {
   this->serverName_ = serverName;
@@ -33,7 +29,8 @@ const std::map<HttpStatus, std::string>& ServerConfig::getErrors() const {
 }
 
 const std::string& ServerConfig::getErrorPage(HttpStatus status) const {
-  std::map<HttpStatus, std::string>::const_iterator it = this->errors_.find(status);
+  std::map<HttpStatus, std::string>::const_iterator it =
+      this->errors_.find(status);
   if (it != this->errors_.end()) {
     return it->second;
   } else {
@@ -46,18 +43,12 @@ const std::vector<Location>& ServerConfig::getLocations() const {
   return this->locations_;
 }
 
-const std::string& ServerConfig::getHost() const {
-  return this->host_;
-}
+const std::string& ServerConfig::getHost() const { return this->host_; }
 
-const std::string& ServerConfig::getPort() const {
-  return this->port_;
-}
+const std::string& ServerConfig::getPort() const { return this->port_; }
 
 const std::string& ServerConfig::getServerName() const {
   return this->serverName_;
 }
 
-int ServerConfig::getMaxBodySize() const {
-  return this->maxBodySize_;
-}
+int ServerConfig::getMaxBodySize() const { return this->maxBodySize_; }

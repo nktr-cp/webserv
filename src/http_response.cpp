@@ -37,8 +37,10 @@ void HttpResponse::setStatus(HttpStatus status) {
     ss << "<head><title>" << status << " " << http::statusToString(status)
        << "</title></head>";
     ss << "<body>";
-    ss << "<center><h1>" << status << " " << http::statusToString(status) << "</h1></center>";
-    ss << "<hr><center>" << VersionInfo::kProgramName << "/" << VersionInfo::kProgramVersion << "</center>";
+    ss << "<center><h1>" << status << " " << http::statusToString(status)
+       << "</h1></center>";
+    ss << "<hr><center>" << VersionInfo::kProgramName << "/"
+       << VersionInfo::kProgramVersion << "</center>";
     ss << "</body>";
     ss << "</html>";
     ss << "<!--";

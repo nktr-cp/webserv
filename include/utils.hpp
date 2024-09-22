@@ -52,17 +52,17 @@ Result<bool> isDeletable(const std::string& path);
 
 // http
 namespace http {
-  std::string statusToString(HttpStatus status);
-  std::string methodToString(HttpMethod method);
-  class responseStatusException : public std::runtime_error {
-   private:
-    HttpStatus status_;
+std::string statusToString(HttpStatus status);
+std::string methodToString(HttpMethod method);
+class responseStatusException : public std::runtime_error {
+ private:
+  HttpStatus status_;
 
-   public:
-    responseStatusException(HttpStatus status);
-    HttpStatus getStatus() const;
-  };
-} // namespace http
+ public:
+  responseStatusException(HttpStatus status);
+  HttpStatus getStatus() const;
+};
+}  // namespace http
 
 // error class
 #include <cerrno>
