@@ -26,6 +26,10 @@ int main(int ac, char **av) {
   } catch (const std::exception &e) {
     return 1;
   }
-  webserv.run();
+  try {
+    webserv.run();
+  } catch (const std::exception &e) {
+    return 1;
+  }
   return 0;
 }
