@@ -80,10 +80,3 @@ Result<bool> isDeletable(const std::string& path) {
 }
 
 }  // namespace filemanip
-
-const std::string VersionInfo::kProgramName = "webserv";
-const std::string VersionInfo::kProgramVersion = "1.0";
-const std::string VersionInfo::kHttpVersion = "HTTP/1.1";
-const std::string VersionInfo::kCgiVersion = "CGI/1.1";
-const std::string VersionInfo::kUrlPrefixSecure = "https://";
-const std::string VersionInfo::kUrlPrefix = "http://";

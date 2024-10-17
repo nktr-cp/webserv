@@ -1,5 +1,12 @@
 #include "webserv.hpp"
 
+const std::string VersionInfo::kProgramName = "webserv";
+const std::string VersionInfo::kProgramVersion = "1.0";
+const std::string VersionInfo::kHttpVersion = "HTTP/1.1";
+const std::string VersionInfo::kCgiVersion = "CGI/1.1";
+const std::string VersionInfo::kUrlPrefixSecure = "https://";
+const std::string VersionInfo::kUrlPrefix = "http://";
+
 int main(int ac, char **av) {
   if (ac > 2) {
     std::cerr << "Usage: " << av[0] << " [config_file]" << std::endl;
@@ -17,7 +24,6 @@ int main(int ac, char **av) {
   try {
     webserv = Webserv(configFile);
   } catch (const std::exception &e) {
-    std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }
   webserv.run();

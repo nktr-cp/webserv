@@ -90,10 +90,6 @@ void Webserv::run() {
           handleClientData(fd);
         } catch (const SysCallFailed &e) {
         }
-        try {
-          closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-        }
       }
     }
   }
@@ -157,10 +153,6 @@ void Webserv::run() {
       if (!isServerSocket) {
         try {
           handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-        }
-        try {
-          closeConnection(fd);
         } catch (const SysCallFailed &e) {
         }
       }

@@ -89,8 +89,13 @@ void cgiMaster::handleChildProcess() {
   close(inpipe_[0]);
   close(outpipe_[1]);
   char cwd[PATH_MAX];
-  if (getcwd(cwd, sizeof(cwd)) == NULL) throw SysCallFailed("getcwd");
-  std::string fullCgiPath = std::string(cwd) + cgiPath;
+  std::string fullCgiPath;
+  if (cgiPath[0] != '/') {
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+      throw SysCallFailed("getcwd");
+    fullCgiPath = std::string(cwd) + "/" + cgiPath;
+  } else
+    fullCgiPath = cgiPath;
 
   // envvar
   char **envp = envToCArray();

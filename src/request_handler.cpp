@@ -260,7 +260,6 @@ void RequestHandler::handleStaticGet() {
         break;
       }
     }
-
     if (!indexFound) {
       if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
@@ -268,8 +267,8 @@ void RequestHandler::handleStaticGet() {
         response_->setStatus(OK);
         return;
       } else {
-        if (!indexFiles.empty())
-          response_->setStatus(NOT_FOUND);
+        if (!indexFiles.empty()) 
+          response_->setStatus(NOT_FOUND); 
         else
           response_->setStatus(FORBIDDEN);
         return;
@@ -290,7 +289,6 @@ void RequestHandler::handleStaticGet() {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
-
   std::string mimeType = getMimeType(path);
 
   response_->setHeader("Content-Type", mimeType);
@@ -354,6 +352,7 @@ void RequestHandler::
 }
 
 void RequestHandler::handleCGIRequest() {
+  
   cgiMaster cgi(request_, response_, location_);
   try {
     cgi.execute();
