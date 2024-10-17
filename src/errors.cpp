@@ -21,10 +21,8 @@ std::string SyntaxError::ErrMsgWrapper(const std::string& token) {
 SysCallFailed::SysCallFailed(const std::string& scname)
     : ExtraErrors(ErrMsgWrapper(scname)) {}
 
-const std::string SysCallFailed::ErrorMessage = strerror(errno);
-
 std::string SysCallFailed::ErrMsgWrapper(const std::string& arg) {
-  return this->ProgramNamePrefix + arg + std::string(": ") + this->ErrorMessage;
+  return this->ProgramNamePrefix + arg + std::string(": ") + strerror(errno);
 }
 
 ArgOutOfRange::ArgOutOfRange(const std::string& arg)
