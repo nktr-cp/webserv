@@ -226,7 +226,6 @@ void HttpRequest::parseRequest(const char *payload) {
       }
     }
     flag_body: {
-      std::cerr << "contentLength: " << contentLength_ << std::endl;
       if (contentLength_ >= 0) {
         if (buffer_.size() < static_cast<size_t>(contentLength_)) {
           return;
