@@ -11,6 +11,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <map>
 
 #include "config.hpp"
 #include "server.hpp"

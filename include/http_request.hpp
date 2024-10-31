@@ -8,8 +8,11 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
+#define DEFAULT_PORT 80
+
 class HttpRequest {
  private:
+  std::string buffer_;
   static const TrieNode<HttpMethod> kMethodTrie;
   static const size_t kMaxHeaderSize;
   static const size_t kMaxUriSize;
@@ -21,7 +24,7 @@ class HttpRequest {
   std::string version_;
   dict headers_;
   std::string body_;
-  size_t contentLength_;
+  long long contentLength_;
 
   const char* parseMethod(const char* req);
   const char* parseUri(const char* req);
@@ -29,13 +32,20 @@ class HttpRequest {
   const char* parseHeader(const char* req);
 
  public:
+   enum ParseTarget {
+    HEADER = 0,
+    BODY,
+    DONE
+  };
   static const size_t kMaxPayloadSize;
+  ParseTarget progress;
+
   HttpRequest();
-  HttpRequest(const char* raw_request);
   HttpRequest(const HttpRequest& src);
   HttpRequest& operator=(const HttpRequest& src);
   ~HttpRequest();
 
+  void parseRequest(const char* payload);
   HttpMethod getMethod() const;
   const std::string& getUri() const;
   const dict& getQuery() const;

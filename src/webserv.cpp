@@ -236,12 +236,18 @@ void Webserv::handleNewConnection(int server_fd) {
 }
 
 void Webserv::handleClientData(int client_fd) {
+  static std::map<int, HttpRequest> requests;
   std::string request_data;
   ssize_t recv_bytes = 0;
   size_t total_bytes = 0;
-  HttpRequest request;
   HttpResponse response;
 
+  if (requests.find(client_fd) == requests.end()) {
+    requests[client_fd] = HttpRequest();
+  }
+  HttpRequest &request = requests[client_fd];
+
+  // リクエストを受信
   while (true) {
     recv_bytes = recv(client_fd, &buffer_[0], kBufferSize, 0);
 
@@ -250,12 +256,14 @@ void Webserv::handleClientData(int client_fd) {
     } else if (recv_bytes == 0) {
       // Client closed connection
       close(client_fd);
+      requests.erase(client_fd);
       return;
     }
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
       sendResponse(client_fd, response);
+      requests.erase(client_fd);
       return;
     }
     total_bytes += recv_bytes;
@@ -265,11 +273,26 @@ void Webserv::handleClientData(int client_fd) {
 
   // リクエストをパース
   try {
-    request = HttpRequest(request_data.c_str());
+    request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
     sendResponse(client_fd, response);
+    requests.erase(client_fd);
     return;
+  } catch (const std::exception &e) {
+    response.setStatus(INTERNAL_SERVER_ERROR);
+    sendResponse(client_fd, response);
+    requests.erase(client_fd);
+    return;
+  }
+
+  switch (request.progress) {
+    case HttpRequest::HEADER:
+      return;
+    case HttpRequest::BODY:
+      return;
+    case HttpRequest::DONE:
+      break;
   }
 
   // 該当するサーバーを探してリクエストを処理
@@ -288,6 +311,7 @@ void Webserv::handleClientData(int client_fd) {
   }
   // レスポンスをクライアントに送信
   sendResponse(client_fd, response);
+  requests.erase(client_fd);
 }
 
 void Webserv::sendResponse(const int client_fd, const HttpResponse &response) {

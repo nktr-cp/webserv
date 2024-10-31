@@ -29,6 +29,8 @@ std::string statusToString(HttpStatus status) {
       return "URI Too Long";
     case TOO_MANY_REQUESTS:
       return "Too Many Requests";
+    case REQUEST_HEADER_FIELDS_TOO_LARGE:
+      return "Header Fields Too Large";
     case INTERNAL_SERVER_ERROR:
       return "Internal Server Error";
     case NOT_IMPLEMENTED:
