@@ -225,7 +225,6 @@ void HttpRequest::parseRequest(const char *payload) {
         } catch (http::responseStatusException &e) {
           throw e;
         } catch (std::exception &e) {
-          std::cerr << e.what() << std::endl;
           throw http::responseStatusException(INTERNAL_SERVER_ERROR);
         }
       }

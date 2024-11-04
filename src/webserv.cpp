@@ -275,13 +275,11 @@ void Webserv::handleClientData(int client_fd) {
   try {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
-    std::cerr << e.what() << std::endl;
     response.setStatus(e.getStatus());
     sendResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
     response.setStatus(INTERNAL_SERVER_ERROR);
     sendResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
@@ -302,7 +300,6 @@ void Webserv::handleClientData(int client_fd) {
     }
   }
   if (!server_found) {
-    std::cerr << "Server not found" << std::endl;
     response.setStatus(NOT_FOUND);
   }
   // レスポンスをクライアントに送信
