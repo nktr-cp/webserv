@@ -229,6 +229,8 @@ const char *HttpRequest::parseHeader(const char *req)
     if (headers_["Transfer-Encoding"] == "chunked")
     {
       contentLength_ = -1;
+    } else {
+      throw http::responseStatusException(NOT_IMPLEMENTED);
     }
   }
   else
@@ -236,9 +238,14 @@ const char *HttpRequest::parseHeader(const char *req)
     contentLength_ = 0;
   }
   bool hasConnection = headers_.find("Connection") != headers_.end();
-  if (hasConnection && headers_["Connection"] == "close")
+  if (hasConnection)
   {
-    keepAlive = false;
+    if (headers_["Connection"] == "close")
+      keepAlive = false;
+    else if (headers_["Connection"] == "keep-alive")
+      keepAlive = true;
+    else
+      throw http::responseStatusException(BAD_REQUEST);
   }
   return req;
 }
