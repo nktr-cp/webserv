@@ -240,12 +240,12 @@ void Webserv::handleClientData(int client_fd) {
   std::string request_data;
   ssize_t recv_bytes = 0;
   size_t total_bytes = 0;
-  HttpResponse response;
 
   if (requests.find(client_fd) == requests.end()) {
     requests[client_fd] = HttpRequest();
   }
   HttpRequest &request = requests[client_fd];
+  HttpResponse response;
 
   // リクエストを受信
   while (true) {
@@ -262,7 +262,7 @@ void Webserv::handleClientData(int client_fd) {
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
-      sendResponse(client_fd, response);
+      sendResponse(client_fd, response, request.keepAlive);
       requests.erase(client_fd);
       return;
     }
@@ -275,25 +275,20 @@ void Webserv::handleClientData(int client_fd) {
   try {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
+    std::cerr << e.what() << std::endl;
     response.setStatus(e.getStatus());
-    sendResponse(client_fd, response);
+    sendResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
     response.setStatus(INTERNAL_SERVER_ERROR);
-    sendResponse(client_fd, response);
+    sendResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   }
 
-  switch (request.progress) {
-    case HttpRequest::HEADER:
-      return;
-    case HttpRequest::BODY:
-      return;
-    case HttpRequest::DONE:
-      break;
-  }
+  if (request.progress != HttpRequest::DONE) return ;
 
   // 該当するサーバーを探してリクエストを処理
   std::string port = request.getHostPort();
@@ -307,15 +302,19 @@ void Webserv::handleClientData(int client_fd) {
     }
   }
   if (!server_found) {
+    std::cerr << "Server not found" << std::endl;
     response.setStatus(NOT_FOUND);
   }
   // レスポンスをクライアントに送信
-  sendResponse(client_fd, response);
+  sendResponse(client_fd, response, request.keepAlive);
   requests.erase(client_fd);
 }
 
-void Webserv::sendResponse(const int client_fd, const HttpResponse &response) {
+void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive) {
   std::string res_str = response.encode();
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
+  if (!keepAlive) {
+    closeConnection(client_fd);
+  }
 }

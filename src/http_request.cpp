@@ -174,12 +174,17 @@ const char *HttpRequest::parseHeader(const char *req) {
   } else {
     contentLength_ = 0;
   }
+  bool hasConnection = headers_.find("Connection") != headers_.end();
+  if (hasConnection && headers_["Connection"] == "close") {
+    keepAlive = false;
+  }
   return req;
 }
 
 HttpRequest::HttpRequest()
   : buffer_(), method_(NONE), uri_(), query_(), hostName_(), hostPort_(),
-    version_(), headers_(), body_(), contentLength_(0), progress(HEADER)
+    version_(), headers_(), body_(), contentLength_(0), keepAlive(true),
+    progress(HEADER)
   {}
 
 static size_t is_end_of_header(const std::string payload) {
@@ -295,6 +300,7 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &src) {
     this->headers_ = src.headers_;
     this->body_ = src.body_;
     this->contentLength_ = src.contentLength_;
+    this->keepAlive = src.keepAlive;
     this->progress = src.progress;
   }
   return *this;

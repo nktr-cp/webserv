@@ -14,17 +14,19 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-struct FileEntry {
+struct FileEntry
+{
   std::string name;
   std::string modTime;
-  long long size;
+  long size;
   bool isDirectory;
 
-  FileEntry(const std::string &n, const std::string &m, long long s, bool d);
+  FileEntry(const std::string &n, const std::string &m, long s, bool d);
 };
 
-class RequestHandler {
- private:
+class RequestHandler
+{
+private:
   HttpRequest *request_;
   HttpResponse *response_;
   const ServerConfig *config_;
@@ -41,7 +43,7 @@ class RequestHandler {
   void handleStaticDelete();
   void handleCGIRequest();
 
- public:
+public:
   RequestHandler();
   RequestHandler(HttpRequest &request, HttpResponse &response,
                  ServerConfig &config);

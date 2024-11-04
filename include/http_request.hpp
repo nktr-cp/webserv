@@ -8,10 +8,11 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-#define DEFAULT_PORT 80
+#define DEFAULT_PORT "8080"
 
-class HttpRequest {
- private:
+class HttpRequest
+{
+private:
   std::string buffer_;
   static const TrieNode<HttpMethod> kMethodTrie;
   static const size_t kMaxHeaderSize;
@@ -24,37 +25,39 @@ class HttpRequest {
   std::string version_;
   dict headers_;
   std::string body_;
-  long long contentLength_;
+  long contentLength_;
 
-  const char* parseMethod(const char* req);
-  const char* parseUri(const char* req);
-  const char* parseVersion(const char* req);
-  const char* parseHeader(const char* req);
+  const char *parseMethod(const char *req);
+  const char *parseUri(const char *req);
+  const char *parseVersion(const char *req);
+  const char *parseHeader(const char *req);
 
- public:
-   enum ParseTarget {
+public:
+  enum ParseTarget
+  {
     HEADER = 0,
     BODY,
     DONE
   };
   static const size_t kMaxPayloadSize;
+  bool keepAlive;
   ParseTarget progress;
 
   HttpRequest();
-  HttpRequest(const HttpRequest& src);
-  HttpRequest& operator=(const HttpRequest& src);
+  HttpRequest(const HttpRequest &src);
+  HttpRequest &operator=(const HttpRequest &src);
   ~HttpRequest();
 
-  void parseRequest(const char* payload);
+  void parseRequest(const char *payload);
   HttpMethod getMethod() const;
-  const std::string& getUri() const;
-  const dict& getQuery() const;
-  const std::string& getQuery(const std::string& key) const;
-  const std::string& getQueryAsStr() const;
-  const std::string& getHostName() const;
-  const std::string& getHostPort() const;
-  const std::string& getVersion() const;
-  const dict& getHeader() const;
-  const std::string& getHeader(const std::string& key) const;
-  const std::string& getBody() const;
+  const std::string &getUri() const;
+  const dict &getQuery() const;
+  const std::string &getQuery(const std::string &key) const;
+  const std::string &getQueryAsStr() const;
+  const std::string &getHostName() const;
+  const std::string &getHostPort() const;
+  const std::string &getVersion() const;
+  const dict &getHeader() const;
+  const std::string &getHeader(const std::string &key) const;
+  const std::string &getBody() const;
 };

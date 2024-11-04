@@ -15,6 +15,8 @@
 
 #include "config.hpp"
 #include "server.hpp"
+#include "http_request.hpp"
+#include "http_response.hpp"
 
 class Webserv {
  private:
@@ -22,7 +24,7 @@ class Webserv {
   std::map<int, time_t> connections_;
 
   void createServerSockets();
-  void sendResponse(const int client_fd, const HttpResponse &response);
+  void sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive);
   void handleTimeout();
   void closeConnection(int sock_fd);
 

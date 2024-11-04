@@ -2,21 +2,24 @@
 
 #include "webserv.hpp"
 
-cgiMaster::cgiMaster(const HttpRequest *request, HttpResponse *response,
+CgiMaster::CgiMaster(const HttpRequest *request, HttpResponse *response,
                      const Location *location)
-    : request_(request), response_(response), cgiPath(location->getCgiPath()) {
+    : request_(request), response_(response), cgiPath(location->getCgiPath())
+{
   setEnvironment();
   createPipes();
 }
 
-cgiMaster::~cgiMaster() {
+CgiMaster::~CgiMaster()
+{
   close(inpipe_[0]);
   close(inpipe_[1]);
   close(outpipe_[0]);
   close(outpipe_[1]);
 }
 
-void cgiMaster::setEnvironment() {  // TODO:ない可能性があるものの確認
+void CgiMaster::setEnvironment()
+{ // TODO:ない可能性があるものの確認
   env_["REQUEST_METHOD"] = http::methodToString(request_->getMethod());
   env_["REQUEST_URI"] = request_->getUri();
   env_["SERVER_SOFTWARE"] = VersionInfo::kProgramName;
@@ -33,46 +36,60 @@ void cgiMaster::setEnvironment() {  // TODO:ない可能性があるものの確
   env_["HTTP_COOKIE"] = request_->getHeader("Cookie");
 }
 
-void cgiMaster::createPipes() {
-  if (pipe(inpipe_) == -1 || pipe(outpipe_) == -1) {
+void CgiMaster::createPipes()
+{
+  if (pipe(inpipe_) == -1 || pipe(outpipe_) == -1)
+  {
     throw SysCallFailed("pipe");
   }
 }
 
-void cgiMaster::execute() {
+void CgiMaster::execute()
+{
   pid_ = fork();
-  if (pid_ == -1) {
+  if (pid_ == -1)
+  {
     throw SysCallFailed("fork");
   }
 
-  if (pid_ == 0) {
+  if (pid_ == 0)
+  {
     handleChildProcess();
-  } else {
+  }
+  else
+  {
     handleParentProcess();
     generateHTTPHeader();
     size_t rnrn = output_.find("\r\n\r\n");
     size_t nn = output_.find("\n\n");
-    if (rnrn == std::string::npos && nn == std::string::npos) return;
+    if (rnrn == std::string::npos && nn == std::string::npos)
+      return;
     size_t pos = rnrn == std::string::npos ? nn + 2 : rnrn + 4;
     response_->setBody(output_.substr(pos));
   }
 }
 
-char **cgiMaster::envToCArray() {
+char **CgiMaster::envToCArray()
+{
   char **envp = NULL;
-  try {
+  try
+  {
     envp = new char *[env_.size() + 1];
     int i = 0;
     for (std::map<std::string, std::string>::iterator it = env_.begin();
-         it != env_.end(); ++it) {
+         it != env_.end(); ++it)
+    {
       std::string env = it->first + "=" + it->second;
       envp[i] = new char[env.length() + 1];
       strcpy(envp[i], env.c_str());
       ++i;
     }
     envp[i] = NULL;
-  } catch (std::bad_alloc &ba) {
-    for (size_t j = 0; j < env_.size(); ++j) {
+  }
+  catch (std::bad_alloc &ba)
+  {
+    for (size_t j = 0; j < env_.size(); ++j)
+    {
       delete[] envp[j];
     }
     delete[] envp;
@@ -81,7 +98,8 @@ char **cgiMaster::envToCArray() {
   return envp;
 }
 
-void cgiMaster::handleChildProcess() {
+void CgiMaster::handleChildProcess()
+{
   close(inpipe_[1]);
   close(outpipe_[0]);
   dup2(inpipe_[0], STDIN_FILENO);
@@ -90,11 +108,13 @@ void cgiMaster::handleChildProcess() {
   close(outpipe_[1]);
   char cwd[PATH_MAX];
   std::string fullCgiPath;
-  if (cgiPath[0] != '/') {
+  if (cgiPath[0] != '/')
+  {
     if (getcwd(cwd, sizeof(cwd)) == NULL)
       throw SysCallFailed("getcwd");
     fullCgiPath = std::string(cwd) + "/" + cgiPath;
-  } else
+  }
+  else
     fullCgiPath = cgiPath;
 
   // envvar
@@ -104,7 +124,8 @@ void cgiMaster::handleChildProcess() {
   std::exit(EXIT_FAILURE);
 }
 
-void cgiMaster::handleParentProcess() {
+void CgiMaster::handleParentProcess()
+{
   close(inpipe_[0]);
   close(outpipe_[1]);
   std::string body = request_->getBody();
@@ -116,7 +137,8 @@ void cgiMaster::handleParentProcess() {
 
 #ifdef __APPLE__
   int kq = kqueue();
-  if (kq == -1) {
+  if (kq == -1)
+  {
     throw SysCallFailed("kqueue");
   }
 
@@ -128,16 +150,20 @@ void cgiMaster::handleParentProcess() {
   timeout.tv_nsec = 0;
 
   int ret = kevent(kq, &change, 1, &change, 1, &timeout);
-  if (ret == -1) {
+  if (ret == -1)
+  {
     close(kq);
     throw SysCallFailed("kevent");
-  } else if (ret == 0) {
+  }
+  else if (ret == 0)
+  {
     close(kq);
     signal(SIGCHLD, SIG_IGN);
     throw http::responseStatusException(GATEWAY_TIMEOUT);
   }
 
-  if (change.filter == EVFILT_READ) {
+  if (change.filter == EVFILT_READ)
+  {
     while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
       output_.append(buffer, n);
   }
@@ -145,7 +171,8 @@ void cgiMaster::handleParentProcess() {
 
 #elif __linux__
   int epfd = epoll_create1(0);
-  if (epfd == -1) {
+  if (epfd == -1)
+  {
     throw SysCallFailed("epoll_create1");
   }
 
@@ -153,23 +180,28 @@ void cgiMaster::handleParentProcess() {
   event.events = EPOLLIN;
   event.data.fd = outpipe_[0];
 
-  if (epoll_ctl(epfd, EPOLL_CTL_ADD, outpipe_[0], &event) == -1) {
+  if (epoll_ctl(epfd, EPOLL_CTL_ADD, outpipe_[0], &event) == -1)
+  {
     close(epfd);
     throw SysCallFailed("epoll_ctl");
   }
 
   struct epoll_event events[1];
   int ret = epoll_wait(epfd, events, 1, GATEWAY_TIMEOUT_SECONDS * 1000);
-  if (ret == -1) {
+  if (ret == -1)
+  {
     close(epfd);
     throw SysCallFailed("epoll_wait");
-  } else if (ret == 0) {
+  }
+  else if (ret == 0)
+  {
     close(epfd);
     signal(SIGCHLD, SIG_IGN);
     throw http::responseStatusException(GATEWAY_TIMEOUT);
   }
 
-  if (events[0].events & EPOLLIN) {
+  if (events[0].events & EPOLLIN)
+  {
     while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
       output_.append(buffer, n);
   }
@@ -180,40 +212,50 @@ void cgiMaster::handleParentProcess() {
   close(outpipe_[0]);
   int status;
   waitpid(pid_, &status, 0);
-  if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+  if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+  {
     throw http::responseStatusException(INTERNAL_SERVER_ERROR);
   }
 }
 
-void cgiMaster::generateHTTPHeader() {
+void CgiMaster::generateHTTPHeader()
+{
   std::string line;
   std::istringstream iss(output_);
-  while (std::getline(iss, line)) {
-    if (line.empty()) {
+  while (std::getline(iss, line))
+  {
+    if (line.empty())
+    {
       break;
     }
     size_t pos = line.find(":");
-    if (pos == std::string::npos) {
+    if (pos == std::string::npos)
+    {
       continue;
     }
     std::string key = line.substr(0, pos);
     std::string value = line.substr(pos + 1);
-    if (key == "Status") {
+    if (key == "Status")
+    {
       std::istringstream iss(value);
       std::string status;
       iss >> status;
       unsigned int range[] = {
           100,
-          599};  // 本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
-      try {
+          599}; // 本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
+      try
+      {
         response_->setStatus(static_cast<HttpStatus>(ft::stoui(status, range)));
-      } catch (const std::exception &e) {
+      }
+      catch (const std::exception &e)
+      {
         throw http::responseStatusException(BAD_GATEWAY);
       }
       if (!(iss >> status) ||
           status != http::statusToString(response_->getStatus()))
         throw http::responseStatusException(BAD_GATEWAY);
-    } else
+    }
+    else
       response_->setHeader(key, value);
   }
 }
