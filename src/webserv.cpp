@@ -103,7 +103,6 @@ void Webserv::run() {
           std::cout << "Connecting" << std::endl;
           handleNewConnection(fd);
           std::cout << "Connected" << std::endl;
-          break;
         } catch (const SysCallFailed &e) {
         }
       }
@@ -115,7 +114,7 @@ void Webserv::run() {
             std::cout << "sent" << std::endl;
           } catch (const SysCallFailed &e) {
           }
-        } else {
+        } else if (events_[i].filter == EVFILT_READ) {
           D try {
             std::cout << "registering" << std::endl;
             registerClientRequest(fd);
@@ -281,6 +280,7 @@ void Webserv::closeConnection(int sock_fd) {
   }
 #endif
   connections_.erase(sock_fd);
+  pendingRequests_.erase(sock_fd);
   // manより: If how is SHUT_RDWR, further sends and receives will be
   // disallowed.
   shutdown(sock_fd, SHUT_RDWR);
@@ -423,12 +423,9 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
     recv_bytes = read(inpipe, &buffer_[0], kBufferSize);
     std::cerr << recv_bytes << std::endl;
     if (recv_bytes < 0) {
+      throw SysCallFailed("read");
+    } else if (recv_bytes == 0) {//TODO: might not be optimal
       break;
-    } else if (recv_bytes == 0) {
-      // Server closed connection
-      close(client_fd);
-      close(inpipe);
-      return;
     }
 
     // use the same value as HttpRequest::kMaxPayloadSize
@@ -440,8 +437,8 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
     total_bytes += recv_bytes;
     // Append the received chunk to the response_data string
     response_data.append(buffer_.data(), recv_bytes);
-    std::cout << response_data << std::endl;
   }
+  std::cout << response_data << std::endl;
   send(client_fd, response_data.c_str(), response_data.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
   close(inpipe);
