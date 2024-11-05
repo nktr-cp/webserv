@@ -11,8 +11,9 @@
 
 #define BUFFER_SIZE 1024
 
-class cgiMaster {
- private:
+class CgiMaster
+{
+private:
   void setEnvironment();
   void createPipes();
   void handleChildProcess();
@@ -30,10 +31,10 @@ class cgiMaster {
   char **envToCArray();
   void generateHTTPHeader();
 
- public:
-  cgiMaster(const HttpRequest *request, HttpResponse *response,
+public:
+  CgiMaster(const HttpRequest *request, HttpResponse *response,
             const Location *location);
-  ~cgiMaster();
+  ~CgiMaster();
 
   void execute();
 };
