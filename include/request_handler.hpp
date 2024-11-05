@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __APPLE__
+#include <sys/event.h>
+#endif
+
 #include <dirent.h>
 
 #include <fstream>
@@ -14,8 +18,7 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-struct FileEntry
-{
+struct FileEntry {
   std::string name;
   std::string modTime;
   long size;
@@ -24,9 +27,8 @@ struct FileEntry
   FileEntry(const std::string &n, const std::string &m, long s, bool d);
 };
 
-class RequestHandler
-{
-private:
+class RequestHandler {
+ private:
   HttpRequest *request_;
   HttpResponse *response_;
   const ServerConfig *config_;
@@ -41,9 +43,9 @@ private:
   void handleStaticGet();
   void handleStaticPost();
   void handleStaticDelete();
-  void handleCGIRequest();
+  void handleCGIRequest(int inpipe);
 
-public:
+ public:
   RequestHandler();
   RequestHandler(HttpRequest &request, HttpResponse &response,
                  ServerConfig &config);
@@ -51,5 +53,5 @@ public:
   ~RequestHandler();
   RequestHandler &operator=(const RequestHandler &src);
 
-  void process();
+  void process(int inpipe);
 };

@@ -13,10 +13,8 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
       response_(&response),
       config_(&config),
       rootPath_(""),
-      relativePath_("")
-{
-  if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size())
-  {
+      relativePath_("") {
+  if (static_cast<size_t>(config.getMaxBodySize()) < request.getBody().size()) {
     response_->setStatus(PAYLOAD_TOO_LARGE);
     return;
   }
@@ -24,33 +22,25 @@ RequestHandler::RequestHandler(HttpRequest &request, HttpResponse &response,
   int max_count = -1;
   const Location *location = NULL;
   std::string uri = request.getUri();
-  if (uri[uri.size() - 1] != '/')
-  {
+  if (uri[uri.size() - 1] != '/') {
     uri += "/";
   }
-  for (size_t i = 0; i < locations.size(); i++)
-  {
+  for (size_t i = 0; i < locations.size(); i++) {
     const std::string &path = locations[i].getName();
-    for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++)
-    {
-      if (path[cur] != uri[cur])
-      {
+    for (size_t cur = 0; cur < path.size() && cur < uri.size(); cur++) {
+      if (path[cur] != uri[cur]) {
         break;
       }
-      if (path[cur] == '/' && (int)cur > max_count)
-      {
+      if (path[cur] == '/' && (int)cur > max_count) {
         max_count = cur;
         location = &locations[i];
       }
     }
   }
-  if (location == NULL)
-  {
+  if (location == NULL) {
     response_->setStatus(NOT_FOUND);
     return;
-  }
-  else
-  {
+  } else {
     location_ = location;
     rootPath_ = location->getRoot();
     relativePath_ = request.getUri().substr(max_count);
@@ -66,10 +56,8 @@ RequestHandler::RequestHandler(const RequestHandler &src)
 
 RequestHandler::~RequestHandler() {}
 
-RequestHandler &RequestHandler::operator=(const RequestHandler &src)
-{
-  if (this != &src)
-  {
+RequestHandler &RequestHandler::operator=(const RequestHandler &src) {
+  if (this != &src) {
     request_ = src.request_;
     response_ = src.response_;
     location_ = src.location_;
@@ -78,78 +66,84 @@ RequestHandler &RequestHandler::operator=(const RequestHandler &src)
   }
   return *this;
 }
-void RequestHandler::process()
-{
-  if (location_->isRedirect())
-  {
+
+void RequestHandler::process(int inpipe) {
+  if (location_->isRedirect()) {
     // std::cerr << "Handling:\tredirect" << std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", location_->getRedirect());
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
+    }
     return;
   }
-  if (response_->getStatus() != OK)
-  {
+  if (response_->getStatus() != OK) {
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
+    }
     return;
   }
+
   // std::cerr << "Location:\t" << location_->getName() << std::endl;
-  if (location_->isCgi())
-  {
+  if (location_->isCgi()) {
     // std::cerr << "Handling:\tCGI "
     // << http::methodToString(request_->getMethod()) << std::endl;
-    handleCGIRequest();
+    handleCGIRequest(inpipe);
     return;
   }
   // std::cerr << "Handling:\t" << http::methodToString(request_->getMethod())
   // << std::endl;
-  if (!location_->isMethodAllowed(request_->getMethod()))
-  {
+  if (!location_->isMethodAllowed(request_->getMethod())) {
     response_->setStatus(METHOD_NOT_ALLOWED);
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
+    }
     return;
   }
-  switch (request_->getMethod())
-  {
-  case GET:
-    handleStaticGet();
-    break;
-  case POST:
-    handleStaticPost();
-    break;
-  case DELETE:
-    handleStaticDelete();
-    break;
-  default:
-    response_->setStatus(METHOD_NOT_ALLOWED);
-    break;
+  switch (request_->getMethod()) {
+    case GET:
+      handleStaticGet();
+      break;
+    case POST:
+      handleStaticPost();
+      break;
+    case DELETE:
+      handleStaticDelete();
+      break;
+    default:
+      response_->setStatus(METHOD_NOT_ALLOWED);
+      break;
   }
   std::string errorpage = config_->getErrorPage(response_->getStatus());
-  if (!errorpage.empty())
-  {
+  if (!errorpage.empty()) {
     // std::cerr << response_->getStatus() << " error:\tredirecting" <<
     // std::endl;
     response_->setStatus(FOUND);
     response_->setHeader("Location", errorpage);
   }
-  try
-  {
-    std::string error = request_->getQuery("error");
-    if (!error.empty())
-    {
-      const unsigned int range[2] = {100, 599};
-      response_->setStatus(static_cast<HttpStatus>(ft::stoui(error, range)));
+  try {
+    // std::string error = request_->getQuery("error");
+    // if (!error.empty()) {
+    //   const unsigned int range[2] = {100, 599};
+    //   response_->setStatus(static_cast<HttpStatus>(ft::stoui(error, range)));
+    // }
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
     }
-  }
-  catch (std::exception &e)
-  {
-  } // ignore
+
+  } catch (std::exception &e) {
+  }  // ignore
   // std::cerr << "Status:\t\t" << response_->getStatus() << std::endl;
 }
 
-FileEntry::FileEntry(const std::string &n, const std::string &m, long s,
-                     bool d)
+FileEntry::FileEntry(const std::string &n, const std::string &m, long s, bool d)
     : name(n), modTime(m), size(s), isDirectory(d) {}
 
-std::string RequestHandler::generateDirectoryListing(const std::string &path)
-{
+std::string RequestHandler::generateDirectoryListing(const std::string &path) {
   DIR *dir;
   struct dirent *entry;
   struct stat file_stat;
@@ -157,23 +151,19 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path)
   std::vector<FileEntry> entries;
 
   dir = opendir(path.c_str());
-  if (dir == NULL)
-  {
+  if (dir == NULL) {
     return "Error opening directory.";
   }
 
-  while ((entry = readdir(dir)) != NULL)
-  {
+  while ((entry = readdir(dir)) != NULL) {
     std::string filename = entry->d_name;
     std::string fullpath = path + "/" + filename;
 
-    if (filename == "." || filename == "..")
-    {
+    if (filename == "." || filename == "..") {
       continue;
     }
 
-    if (stat(fullpath.c_str(), &file_stat) == -1)
-    {
+    if (stat(fullpath.c_str(), &file_stat) == -1) {
       continue;
     }
 
@@ -190,12 +180,9 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path)
   closedir(dir);
 
   // sort entries based on their names
-  for (size_t i = 0; i + 1 < entries.size(); i++)
-  {
-    for (size_t j = i + 1; j < entries.size(); j++)
-    {
-      if (entries[i].name > entries[j].name)
-      {
+  for (size_t i = 0; i + 1 < entries.size(); i++) {
+    for (size_t j = i + 1; j < entries.size(); j++) {
+      if (entries[i].name > entries[j].name) {
         std::swap(entries[i], entries[j]);
       }
     }
@@ -233,8 +220,7 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path)
        << "        </tr>\n";
 
   for (std::vector<FileEntry>::const_iterator it = entries.begin();
-       it != entries.end(); ++it)
-  {
+       it != entries.end(); ++it) {
     html << "        <tr>\n"
          << "            <td><a href=\"" << it->name
          << (it->isDirectory ? "/" : "") << "\">" << it->name
@@ -252,70 +238,53 @@ std::string RequestHandler::generateDirectoryListing(const std::string &path)
   return html.str();
 }
 
-std::string RequestHandler::getMimeType(const std::string &path)
-{
+std::string RequestHandler::getMimeType(const std::string &path) {
   std::string extension = path.substr(path.find_last_of(".") + 1);
-  if (extension == "html" || extension == "htm")
-    return "text/html";
-  if (extension == "css")
-    return "text/css";
-  if (extension == "js")
-    return "application/javascript";
-  if (extension == "jpg" || extension == "jpeg")
-    return "image/jpeg";
-  if (extension == "png")
-    return "image/png";
-  if (extension == "gif")
-    return "image/gif";
+  if (extension == "html" || extension == "htm") return "text/html";
+  if (extension == "css") return "text/css";
+  if (extension == "js") return "application/javascript";
+  if (extension == "jpg" || extension == "jpeg") return "image/jpeg";
+  if (extension == "png") return "image/png";
+  if (extension == "gif") return "image/gif";
   return "application/octet-stream";
 }
 
-void RequestHandler::handleStaticGet()
-{
+void RequestHandler::handleStaticGet() {
   // rootPath_ + relativePath_ のファイルを読み、responseに書き込む
   std::string path = rootPath_ + relativePath_;
 
   Result<bool> fileExists = filemanip::pathExists(path);
-  if (!fileExists.isOk() || !fileExists.getValue())
-  {
+  if (!fileExists.isOk() || !fileExists.getValue()) {
     response_->setStatus(NOT_FOUND);
     return;
   }
 
   Result<bool> isDir = filemanip::isDir(path);
-  if (!isDir.isOk())
-  {
+  if (!isDir.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
-  if (isDir.getValue())
-  {
+  if (isDir.getValue()) {
     // Use vector of index files
     const std::vector<std::string> &indexFiles = location_->getIndex();
     bool indexFound = false;
     for (std::vector<std::string>::const_iterator it = indexFiles.begin();
-         it != indexFiles.end(); ++it)
-    {
+         it != indexFiles.end(); ++it) {
       std::string indexPath = path + "/" + *it;
       Result<bool> indexExists = filemanip::pathExists(indexPath);
-      if (indexExists.isOk() && indexExists.getValue())
-      {
+      if (indexExists.isOk() && indexExists.getValue()) {
         path = indexPath;
         indexFound = true;
         break;
       }
     }
-    if (!indexFound)
-    {
-      if (location_->isAutoIndex())
-      {
+    if (!indexFound) {
+      if (location_->isAutoIndex()) {
         std::string listing = generateDirectoryListing(path);
         response_->setBody(listing);
         response_->setStatus(OK);
         return;
-      }
-      else
-      {
+      } else {
         if (!indexFiles.empty())
           response_->setStatus(NOT_FOUND);
         else
@@ -326,8 +295,7 @@ void RequestHandler::handleStaticGet()
   }
 
   std::ifstream ifs(path.c_str());
-  if (!ifs)
-  {
+  if (!ifs) {
     response_->setStatus(FORBIDDEN);
     return;
   }
@@ -335,8 +303,7 @@ void RequestHandler::handleStaticGet()
   std::stringstream buffer;
   buffer << ifs.rdbuf();
 
-  if (ifs.fail() && !ifs.eof())
-  {
+  if (ifs.fail() && !ifs.eof()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
@@ -347,14 +314,12 @@ void RequestHandler::handleStaticGet()
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleStaticPost()
-{
+void RequestHandler::handleStaticPost() {
   // rootPath_ + relativePath_
   // にファイルを保存し、responseにステータスを書き込む
   std::string path = rootPath_ + relativePath_;
   std::ofstream ofs(path.c_str());
-  if (!ofs)
-  {
+  if (!ofs) {
     response_->setStatus(FORBIDDEN);
     return;
   }
@@ -363,48 +328,40 @@ void RequestHandler::handleStaticPost()
 }
 
 void RequestHandler::
-    handleStaticDelete()
-{ // 処理順が違う可能性あり、おそらくどうでもいい
+    handleStaticDelete() {  // 処理順が違う可能性あり、おそらくどうでもいい
   std::string path = rootPath_ + relativePath_;
 
   Result<bool> is_file = filemanip::pathExists(path);
-  if (!is_file.isOk())
-  {
+  if (!is_file.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
-  if (!is_file.getValue())
-  {
+  if (!is_file.getValue()) {
     response_->setStatus(NOT_FOUND);
     return;
   }
 
   Result<bool> is_dir = filemanip::isDir(path);
-  if (!is_dir.isOk())
-  {
+  if (!is_dir.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
-  if (is_dir.getValue())
-  {
+  if (is_dir.getValue()) {
     response_->setStatus(BAD_REQUEST);
     return;
   }
 
   Result<bool> is_deletable = filemanip::isDeletable(path);
-  if (!is_deletable.isOk())
-  {
+  if (!is_deletable.isOk()) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
-  if (!is_deletable.getValue())
-  {
+  if (!is_deletable.getValue()) {
     response_->setStatus(FORBIDDEN);
     return;
   }
 
-  if (remove(path.c_str()) != 0)
-  {
+  if (remove(path.c_str()) != 0) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
     return;
   }
@@ -412,22 +369,23 @@ void RequestHandler::
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleCGIRequest()
-{
-
-  CgiMaster cgi(request_, response_, location_);
-  try
-  {
-    cgi.execute();
-  }
-  catch (SysCallFailed &e)
-  {
+void RequestHandler::handleCGIRequest(int inpipe) {
+  CgiMaster cgi(request_, location_);
+  try {
+    cgi.execute(inpipe);
+  } catch (SysCallFailed &e) {
     response_->setStatus(INTERNAL_SERVER_ERROR);
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
+    }
     return;
-  }
-  catch (http::responseStatusException &e)
-  {
+  } catch (http::responseStatusException &e) {
     response_->setStatus(e.getStatus());
+    std::string toSend = response_->encode();
+    if (write(inpipe, toSend.c_str(), toSend.size()) == -1) {
+      throw SysCallFailed("write");
+    }
     return;
   }
 }

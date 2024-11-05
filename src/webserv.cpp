@@ -63,34 +63,125 @@ void Webserv::run() {
     }
 
     for (int i = 0; i < nev; i++) {
+      puts("====================");
+      std::cout << nev << " events" << std::endl;
+      std::cout << "Pending " << pendingRequests_.size() << " requests"
+                << std::endl;
+      puts("--------------------");
+#define D std::cout << __LINE__ << std::endl;
       int fd = events_[i].ident;
 
-      if (events_[i].flags & EV_EOF) {
-        try {
-          closeConnection(fd);
-        } catch (const SysCallFailed &e) {
+      bool isPendingRequest = false;
+      int client = -1;
+      for (std::map<int, std::set<int> >::const_iterator it =
+               pendingRequests_.begin();
+           it != pendingRequests_.end(); ++it) {
+        if (it->second.find(fd) != it->second.end()) {
+          isPendingRequest = true;
+          client = it->first;
+          break;
         }
-        continue;
       }
-
-      bool isServerSocket = false;
+      D bool isServerSocket = false;
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
           isServerSocket = true;
-          try {
-            handleNewConnection(fd);
-          } catch (const SysCallFailed &e) {
-          }
           break;
         }
       }
 
-      if (!isServerSocket) {
+      D if (!isPendingRequest && (events_[i].flags & EV_EOF)) {
         try {
-          handleClientData(fd);
+          std::cout << "Closing" << std::endl;
+          closeConnection(fd);
+          std::cout << "Closed" << std::endl;
         } catch (const SysCallFailed &e) {
         }
       }
+      D if (isServerSocket && !isPendingRequest) {
+        D try {
+          std::cout << "Connecting" << std::endl;
+          handleNewConnection(fd);
+          std::cout << "Connected" << std::endl;
+          break;
+        } catch (const SysCallFailed &e) {
+        }
+      }
+      else {
+        if (isPendingRequest) {
+          D try {
+            std::cout << "sending" << std::endl;
+            sendResponse(client, fd, false);
+            std::cout << "sent" << std::endl;
+          } catch (const SysCallFailed &e) {
+          }
+        } else {
+          D try {
+            std::cout << "registering" << std::endl;
+            registerClientRequest(fd);
+            std::cout << "registered" << std::endl;
+          } catch (const SysCallFailed &e) {
+          }
+        }
+      }
+
+      // if (events_[i].flags & EV_EOF) {
+      //   puts("Closing");
+      //   bool isPendingRequest = false;
+      //   for (std::map<int, std::set<int> >::const_iterator it =
+      //            pendingRequests_.begin();
+      //        it != pendingRequests_.end(); ++it) {
+      //     if (it->second.find(fd) != it->second.end()) {
+      //       std::cout << "this fd is pending request, aborting" << std::endl;
+      //       isPendingRequest = true;
+      //     }
+      //   }
+      //   if (!isPendingRequest) {
+      //     try {
+      //       closeConnection(fd);
+      //     } catch (const SysCallFailed &e) {
+      //     }
+      //   }
+      //   // continue;
+      // }
+
+      // bool isServerSocket = false;
+      // for (size_t i = 0; i < servers_.size(); i++) {
+      //   if (servers_[i].getServerFd() == fd) {
+      //     isServerSocket = true;
+      //     try {
+      //       handleNewConnection(fd);
+      //     } catch (const SysCallFailed &e) {
+      //     }
+      //     puts("Connected");
+      //     break;
+      //   }
+      // }
+
+      // if (!isServerSocket) {
+      //   puts("Client: request registration or response");
+      //   try {
+      //     bool isPendingRequest = false;
+      //     for (std::map<int, std::set<int> >::const_iterator it =
+      //              pendingRequests_.begin();
+      //          it != pendingRequests_.end(); ++it) {
+      //       if (it->second.find(fd) != it->second.end()) {
+      //         std::cout << "sending" << std::endl;
+      //         sendResponse(it->first, fd, false);
+      //         std::cout << "sent" << std::endl;
+      //         pendingRequests_.erase(it->first);
+      //         isPendingRequest = true;
+      //         break;
+      //       }
+      //     }
+      //     if (!isPendingRequest) {
+      //       std::cout << "registering" << std::endl;
+      //       registerClientRequest(fd);
+      //       std::cout << "registered" << std::endl;
+      //     }
+      //   } catch (const SysCallFailed &e) {
+      //   }
+      // }
     }
   }
 #elif __linux__
@@ -152,7 +243,7 @@ void Webserv::run() {
 
       if (!isServerSocket) {
         try {
-          handleClientData(fd);
+          registerClientRequest(fd);
         } catch (const SysCallFailed &e) {
         }
       }
@@ -235,7 +326,7 @@ void Webserv::handleNewConnection(int server_fd) {
   connections_[client_fd] = time(NULL);
 }
 
-void Webserv::handleClientData(int client_fd) {
+void Webserv::registerClientRequest(int client_fd) {
   static std::map<int, HttpRequest> requests;
   std::string request_data;
   ssize_t recv_bytes = 0;
@@ -262,7 +353,7 @@ void Webserv::handleClientData(int client_fd) {
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
-      sendResponse(client_fd, response, request.keepAlive);
+      sendErrorResponse(client_fd, response, request.keepAlive);
       requests.erase(client_fd);
       return;
     }
@@ -276,39 +367,94 @@ void Webserv::handleClientData(int client_fd) {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
-    sendResponse(client_fd, response, request.keepAlive);
+    sendErrorResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   } catch (const std::exception &e) {
     response.setStatus(INTERNAL_SERVER_ERROR);
-    sendResponse(client_fd, response, request.keepAlive);
+    sendErrorResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   }
 
-  if (request.progress != HttpRequest::DONE) return ;
+  if (request.progress != HttpRequest::DONE) return;
 
   // 該当するサーバーを探してリクエストを処理
   std::string port = request.getHostPort();
   bool server_found = false;
+  int files[2];
   for (size_t i = 0; i < servers_.size(); i++) {
     if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
       Server &server = servers_[i];
-      server.handleRequest(request, response);
+      if (pipe(files) == -1) {
+        response.setStatus(INTERNAL_SERVER_ERROR);
+        sendErrorResponse(client_fd, response, request.keepAlive);
+        requests.erase(client_fd);
+        throw SysCallFailed("pipe");
+      }
+      pendingRequests_[client_fd].insert(files[0]);
+      struct kevent ev;
+      EV_SET(&ev, files[0], EVFILT_READ, EV_ADD, 0, 0, NULL);
+      if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
+        throw SysCallFailed("kevent add");
+      }
+
+      server.handleRequest(request, response, files[1]);
       break;
     }
   }
   if (!server_found) {
+    close(files[0]);
+    close(files[1]);
     response.setStatus(NOT_FOUND);
   }
   // レスポンスをクライアントに送信
-  sendResponse(client_fd, response, request.keepAlive);
-  requests.erase(client_fd);
+  // sendErrorResponse(client_fd, response, request.keepAlive);
+  // requests.erase(client_fd);
 }
 
-void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive) {
+void Webserv::sendResponse(const int client_fd, const int inpipe,
+                           bool keepAlive) {
+  std::string response_data;
+  ssize_t recv_bytes = 0;
+  size_t total_bytes = 0;
+  while (true) {
+    recv_bytes = read(inpipe, &buffer_[0], kBufferSize);
+    std::cerr << recv_bytes << std::endl;
+    if (recv_bytes < 0) {
+      break;
+    } else if (recv_bytes == 0) {
+      // Server closed connection
+      close(client_fd);
+      close(inpipe);
+      return;
+    }
+
+    // use the same value as HttpRequest::kMaxPayloadSize
+    if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
+      close(client_fd);
+      close(inpipe);
+      return;
+    }
+    total_bytes += recv_bytes;
+    // Append the received chunk to the response_data string
+    response_data.append(buffer_.data(), recv_bytes);
+    std::cout << response_data << std::endl;
+  }
+  send(client_fd, response_data.c_str(), response_data.length(), 0);
+  std::fill(buffer_.begin(), buffer_.end(), 0);
+  close(inpipe);
+  pendingRequests_[client_fd].erase(inpipe);
+  if (!keepAlive) {
+    closeConnection(client_fd);
+  }
+}
+
+void Webserv::sendErrorResponse(const int client_fd,
+                                const HttpResponse &response, bool keepAlive) {
   std::string res_str = response.encode();
+  std::cout << res_str << std::endl;
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
   if (!keepAlive) {

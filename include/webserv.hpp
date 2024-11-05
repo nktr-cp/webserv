@@ -8,23 +8,29 @@
 #endif
 
 #include <sys/time.h>
+#include <unistd.h>
 
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
-#include <map>
 
 #include "config.hpp"
-#include "server.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
+#include "server.hpp"
 
 class Webserv {
  private:
   std::vector<Server> servers_;
   std::map<int, time_t> connections_;
+  // key: client_fd, value: inpipe
+  std::map<int, std::set<int> > pendingRequests_;
 
   void createServerSockets();
-  void sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive);
+  void sendErrorResponse(const int client_fd, const HttpResponse &response,
+                         bool keepAlive);
+  void sendResponse(const int client_fd, int inpipe, bool keepAlive);
   void handleTimeout();
   void closeConnection(int sock_fd);
 
@@ -37,7 +43,7 @@ class Webserv {
 #endif
   std::vector<char> buffer_;
 
-  static const int kBufferSize = 1;
+  static const int kBufferSize = 1024;
   static const int kMaxEvents = 16;
   static const int kTimeoutSec = 120;
   static const int kWaitTime = 1000;
@@ -47,7 +53,7 @@ class Webserv {
   Webserv(const std::string &configFile);
 
   void handleNewConnection(int server_fd);
-  void handleClientData(int client_fd);
+  void registerClientRequest(int client_fd);
 
   void run();
 };

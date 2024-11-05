@@ -122,7 +122,7 @@ void Config::parseError(ServerConfig *server) {
   if (token.find(VersionInfo::kUrlPrefix) != 0 &&
       token.find(VersionInfo::kUrlPrefixSecure) != 0 && token[0] != '/')
     token = "/" + token;
-  token += "?error=" + ft::uitost(code);
+  // token += "?error=" + ft::uitost(code);//TODO
   server->addError(code, token);
   token = tokenize(content_);
   if (token != ";") throw SyntaxError(token);
