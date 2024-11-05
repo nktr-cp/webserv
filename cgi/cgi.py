@@ -9,6 +9,7 @@ rand = ''.join(random.choice(string.ascii_letters + string.digits + string.punct
 method = os.getenv("REQUEST_METHOD", "N/A")
 
 # CGI header
+print("Status: 200 OK")
 print("Content-type: text/html\n")
 
 # Output the HTML content

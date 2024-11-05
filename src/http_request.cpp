@@ -272,7 +272,7 @@ static size_t is_end_of_header(const std::string payload)
   return 0;
 }
 void HttpRequest::parseRequest(const char *payload)
-{
+{std::cerr << payload << std::endl;
   try
   {
     buffer_ += payload;

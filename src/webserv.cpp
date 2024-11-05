@@ -59,16 +59,21 @@ void Webserv::run() {
         handleTimeout();
       }
     } catch (const SysCallFailed &e) {
+      break;
       continue;
     }
 
     for (int i = 0; i < nev; i++) {
       puts("====================");
-      std::cout << nev << " events" << std::endl;
+      std::cout << nev << " events on";
+      for (size_t i = 0; i < servers_.size(); i++) {
+        std::cout << " " << servers_[i].getServerFd();
+      }
+      std::cout << std::endl;
       std::cout << "Pending " << pendingRequests_.size() << " requests"
                 << std::endl;
       puts("--------------------");
-#define D std::cout << __LINE__ << std::endl;
+
       int fd = events_[i].ident;
 
       bool isPendingRequest = false;
@@ -82,7 +87,7 @@ void Webserv::run() {
           break;
         }
       }
-      D bool isServerSocket = false;
+      bool isServerSocket = false;
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
           isServerSocket = true;
@@ -90,7 +95,7 @@ void Webserv::run() {
         }
       }
 
-      D if (!isPendingRequest && (events_[i].flags & EV_EOF)) {
+      if (!isPendingRequest && (events_[i].flags & EV_EOF)) {
         try {
           std::cout << "Closing" << std::endl;
           closeConnection(fd);
@@ -98,8 +103,8 @@ void Webserv::run() {
         } catch (const SysCallFailed &e) {
         }
       }
-      D if (isServerSocket && !isPendingRequest) {
-        D try {
+      if (isServerSocket && !isPendingRequest) {
+        try {
           std::cout << "Connecting" << std::endl;
           handleNewConnection(fd);
           std::cout << "Connected" << std::endl;
@@ -108,14 +113,14 @@ void Webserv::run() {
       }
       else {
         if (isPendingRequest) {
-          D try {
+          try {
             std::cout << "sending" << std::endl;
             sendResponse(client, fd, false);
             std::cout << "sent" << std::endl;
           } catch (const SysCallFailed &e) {
           }
         } else if (events_[i].filter == EVFILT_READ) {
-          D try {
+          try {
             std::cout << "registering" << std::endl;
             registerClientRequest(fd);
             std::cout << "registered" << std::endl;
@@ -325,7 +330,7 @@ void Webserv::handleNewConnection(int server_fd) {
 #endif
   connections_[client_fd] = time(NULL);
 }
-
+#define D std::cerr << __LINE__ << std::endl;
 void Webserv::registerClientRequest(int client_fd) {
   static std::map<int, HttpRequest> requests;
   std::string request_data;
@@ -352,7 +357,7 @@ void Webserv::registerClientRequest(int client_fd) {
     }
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
-      response.setStatus(PAYLOAD_TOO_LARGE);
+      response.setStatus(PAYLOAD_TOO_LARGE); 
       sendErrorResponse(client_fd, response, request.keepAlive);
       requests.erase(client_fd);
       return;
@@ -361,12 +366,15 @@ void Webserv::registerClientRequest(int client_fd) {
     // Append the received chunk to the request_data string
     request_data.append(buffer_.data(), recv_bytes);
   }
-
+  std::cout << "++++++++++" << std::endl;
+  std::cout << request_data << std::endl;
+  std::cout << "++++++++++" << std::endl;
   // リクエストをパース
   try {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
+    std::cerr << "this" << std::endl;
     sendErrorResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
@@ -421,7 +429,6 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
   size_t total_bytes = 0;
   while (true) {
     recv_bytes = read(inpipe, &buffer_[0], kBufferSize);
-    std::cerr << recv_bytes << std::endl;
     if (recv_bytes < 0) {
       throw SysCallFailed("read");
     } else if (recv_bytes == 0) {//TODO: might not be optimal
@@ -438,7 +445,9 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
     // Append the received chunk to the response_data string
     response_data.append(buffer_.data(), recv_bytes);
   }
+  std::cout << "**********" << std::endl;
   std::cout << response_data << std::endl;
+  std::cout << "**********" << std::endl;
   send(client_fd, response_data.c_str(), response_data.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
   close(inpipe);
