@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# sleep 12
+sleep 5
 rand=$(tr -dc 'A-Za-z0-9!@#$%^&*()' < /dev/urandom | head -c 10)
 method=$(printenv REQUEST_METHOD)
 
 # Output the HTTP headers
-echo "Status: 200 OK"
 echo "Content-Type: text/html"
 echo ""
 

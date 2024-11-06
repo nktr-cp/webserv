@@ -12,6 +12,9 @@
 #define BUFFER_SIZE 1024
 
 class CgiMaster {
+ public:
+  const static std::string kCgiResponseHeader;
+  
  private:
   void setEnvironment();
   void createPipes();
@@ -31,6 +34,7 @@ class CgiMaster {
   ~CgiMaster();
 
   void execute(int inpipe);
+  static std::string CgiResponseFormatter(std::string response);
 };
 
 #endif

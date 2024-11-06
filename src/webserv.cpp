@@ -1,5 +1,7 @@
 #include "webserv.hpp"
 
+const std::string CgiMaster::kCgiResponseHeader = "WEBSERVCGIRESPONSEIDENTIFIER\n";
+
 Webserv::Webserv() {}
 
 Webserv::Webserv(const std::string &configFile) {
@@ -70,19 +72,19 @@ void Webserv::run() {
         std::cout << " " << servers_[i].getServerFd();
       }
       std::cout << std::endl;
-      std::cout << "Pending " << pendingRequests_.size() << " requests"
+      std::cout << "Pending " << pendingResponse_.size() << " requests"
                 << std::endl;
       puts("--------------------");
 
       int fd = events_[i].ident;
 
-      bool isPendingRequest = false;
+      bool isPendingResponse = false;
       int client = -1;
       for (std::map<int, std::set<int> >::const_iterator it =
-               pendingRequests_.begin();
-           it != pendingRequests_.end(); ++it) {
+               pendingResponse_.begin();
+           it != pendingResponse_.end(); ++it) {
         if (it->second.find(fd) != it->second.end()) {
-          isPendingRequest = true;
+          isPendingResponse = true;
           client = it->first;
           break;
         }
@@ -95,37 +97,45 @@ void Webserv::run() {
         }
       }
 
-      if (!isPendingRequest && (events_[i].flags & EV_EOF)) {
+      if (isPendingResponse)
+        std::cout << "Handling response event" << std::endl;
+      if (isServerSocket)
+        std::cout << "Handling server socket event" << std::endl;
+
+      if (!isPendingResponse && (events_[i].flags & EV_EOF)) {
         try {
           std::cout << "Closing" << std::endl;
           closeConnection(fd);
           std::cout << "Closed" << std::endl;
+          continue;
         } catch (const SysCallFailed &e) {
         }
       }
-      if (isServerSocket && !isPendingRequest) {
+      if (isServerSocket && !isPendingResponse) {
         try {
           std::cout << "Connecting" << std::endl;
           handleNewConnection(fd);
           std::cout << "Connected" << std::endl;
+          continue;
         } catch (const SysCallFailed &e) {
         }
       }
-      else {
-        if (isPendingRequest) {
-          try {
-            std::cout << "sending" << std::endl;
-            sendResponse(client, fd, false);
-            std::cout << "sent" << std::endl;
-          } catch (const SysCallFailed &e) {
-          }
-        } else if (events_[i].filter == EVFILT_READ) {
-          try {
-            std::cout << "registering" << std::endl;
-            registerClientRequest(fd);
-            std::cout << "registered" << std::endl;
-          } catch (const SysCallFailed &e) {
-          }
+      if (isPendingResponse) {
+        try {
+          std::cout << "sending" << std::endl;
+          sendResponse(client, fd, false);
+          std::cout << "sent" << std::endl;
+          continue;
+        } catch (const SysCallFailed &e) {
+        }
+      }
+      if (events_[i].filter == EVFILT_READ) {
+        try {
+          std::cout << "registering" << std::endl;
+          registerClientRequest(fd);
+          std::cout << "registered" << std::endl;
+          continue;
+        } catch (const SysCallFailed &e) {
         }
       }
 
@@ -285,7 +295,7 @@ void Webserv::closeConnection(int sock_fd) {
   }
 #endif
   connections_.erase(sock_fd);
-  pendingRequests_.erase(sock_fd);
+  pendingResponse_.erase(sock_fd);
   // manより: If how is SHUT_RDWR, further sends and receives will be
   // disallowed.
   shutdown(sock_fd, SHUT_RDWR);
@@ -330,7 +340,7 @@ void Webserv::handleNewConnection(int server_fd) {
 #endif
   connections_[client_fd] = time(NULL);
 }
-#define D std::cerr << __LINE__ << std::endl;
+
 void Webserv::registerClientRequest(int client_fd) {
   static std::map<int, HttpRequest> requests;
   std::string request_data;
@@ -366,6 +376,12 @@ void Webserv::registerClientRequest(int client_fd) {
     // Append the received chunk to the request_data string
     request_data.append(buffer_.data(), recv_bytes);
   }
+  if (request_data.find("favicon.ico") != std::string::npos) {//TODO: might not be optimal
+	close(client_fd);
+	requests.erase(client_fd);
+	std::cout << "Favicon request, abort" << std::endl;
+	return;
+  }
   std::cout << "++++++++++" << std::endl;
   std::cout << request_data << std::endl;
   std::cout << "++++++++++" << std::endl;
@@ -374,7 +390,6 @@ void Webserv::registerClientRequest(int client_fd) {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
-    std::cerr << "this" << std::endl;
     sendErrorResponse(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
@@ -401,7 +416,9 @@ void Webserv::registerClientRequest(int client_fd) {
         requests.erase(client_fd);
         throw SysCallFailed("pipe");
       }
-      pendingRequests_[client_fd].insert(files[0]);
+      int flags = fcntl(files[1], F_GETFL, 0);
+      fcntl(files[1], F_SETFL, flags | O_NONBLOCK);
+      pendingResponse_[client_fd].insert(files[0]);
       struct kevent ev;
       EV_SET(&ev, files[0], EVFILT_READ, EV_ADD, 0, 0, NULL);
       if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
@@ -445,13 +462,16 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
     // Append the received chunk to the response_data string
     response_data.append(buffer_.data(), recv_bytes);
   }
+  if (response_data.find(CgiMaster::kCgiResponseHeader) == 0) {
+	response_data = CgiMaster::CgiResponseFormatter(response_data);
+  }
   std::cout << "**********" << std::endl;
   std::cout << response_data << std::endl;
   std::cout << "**********" << std::endl;
   send(client_fd, response_data.c_str(), response_data.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);
   close(inpipe);
-  pendingRequests_[client_fd].erase(inpipe);
+  pendingResponse_[client_fd].erase(inpipe);
   if (!keepAlive) {
     closeConnection(client_fd);
   }
@@ -460,6 +480,7 @@ void Webserv::sendResponse(const int client_fd, const int inpipe,
 void Webserv::sendErrorResponse(const int client_fd,
                                 const HttpResponse &response, bool keepAlive) {
   std::string res_str = response.encode();
+  std::cout << __FILE__ << ":" << __LINE__ << std::endl;
   std::cout << res_str << std::endl;
   send(client_fd, res_str.c_str(), res_str.length(), 0);
   std::fill(buffer_.begin(), buffer_.end(), 0);

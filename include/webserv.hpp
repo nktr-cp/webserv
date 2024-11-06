@@ -19,13 +19,14 @@
 #include "http_request.hpp"
 #include "http_response.hpp"
 #include "server.hpp"
+#include "cgi.hpp"
 
 class Webserv {
  private:
   std::vector<Server> servers_;
   std::map<int, time_t> connections_;
   // key: client_fd, value: inpipe
-  std::map<int, std::set<int> > pendingRequests_;
+  std::map<int, std::set<int> > pendingResponse_;
 
   void createServerSockets();
   void sendErrorResponse(const int client_fd, const HttpResponse &response,

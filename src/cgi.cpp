@@ -1,5 +1,4 @@
 #include "cgi.hpp"
-
 #include "webserv.hpp"
 
 CgiMaster::CgiMaster(const HttpRequest *request, const Location *location)
@@ -89,11 +88,12 @@ void CgiMaster::handleChildProcess(int outpipe) {
   // envvar
   char **envp = envToCArray();
   char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
+  std::cout << kCgiResponseHeader;
   execve(fullCgiPath.c_str(), argv, envp);
   throw SysCallFailed("execve");
   std::exit(EXIT_FAILURE);
 }
-
+#include <csignal>
 void CgiMaster::handleParentProcess() {
   close(inpipe_[0]);
   std::string body = request_->getBody();
@@ -102,7 +102,34 @@ void CgiMaster::handleParentProcess() {
 
   int status;
   waitpid(pid_, &status, WNOHANG);
-  if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-    throw http::responseStatusException(INTERNAL_SERVER_ERROR);
+//   if (!WIFEXITED(status)) {
+// 	waitpid(pid_, &status, 0);
+// 	if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+// 		throw http::responseStatusException(BAD_GATEWAY);
+// 	}
+//   }
+}
+
+std::string CgiMaster::CgiResponseFormatter(std::string response) {
+  std::cout << "Formatting" << std::endl;
+  size_t pos = response.find('\n');
+  if (pos == std::string::npos) {
+    throw http::responseStatusException(BAD_GATEWAY);
   }
+
+  response = response.substr(pos + 1);
+  pos = response.find('\n');
+  if (pos == std::string::npos) {
+    throw http::responseStatusException(BAD_GATEWAY);
+  }
+
+  std::string statusLine;
+  if (response.substr(0, 8) == "Status: ") {
+      statusLine = VersionInfo::kHttpVersion + " " + response.substr(8, pos - 8);
+      response = response.substr(pos + 1);
+  } else {
+      statusLine = VersionInfo::kHttpVersion + " " + std::to_string(OK) + " " + http::statusToString(OK);
+  }
+
+  return statusLine + "\n" + response;
 }
