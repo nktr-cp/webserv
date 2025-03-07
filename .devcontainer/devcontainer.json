@@ -1,0 +1,19 @@
+{
+    "name": "C++ Dev Container",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools"
+            ]
+        }
+    },
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y gdb",
+    "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
+    "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+    }
+}
+
