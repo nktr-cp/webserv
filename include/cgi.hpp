@@ -15,7 +15,6 @@ class CgiMaster
 {
 private:
   const HttpRequest *request_;
-  const Location *location_;
   std::map<std::string, std::string> env_;
   int inpipe_[2];
   int outpipe_[2];
@@ -31,7 +30,7 @@ public:
   std::pair<pid_t, int> execute();
   void handleChildProcess();
   void handleParentProcess();
-  HttpResponse convertCgiResponse(const std::string &cgiResponse);
+  static HttpResponse convertCgiResponse(const std::string &cgiResponse);
 };
 
 #endif

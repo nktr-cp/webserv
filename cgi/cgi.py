@@ -4,7 +4,7 @@ import random
 import string
 import os
 
-# time.sleep(12)
+time.sleep(5000)
 rand = ''.join(random.choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(10))
 method = os.getenv("REQUEST_METHOD", "N/A")
 

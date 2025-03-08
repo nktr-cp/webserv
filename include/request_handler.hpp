@@ -53,4 +53,5 @@ public:
 
   void process();
   bool isCGIRequest() const;
+  const Location *getLocation() const;
 };

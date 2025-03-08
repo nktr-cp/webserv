@@ -12,7 +12,6 @@ CgiMaster::~CgiMaster()
 {
   close(inpipe_[0]);
   close(inpipe_[1]);
-  close(outpipe_[0]);
   close(outpipe_[1]);
 }
 
@@ -111,7 +110,9 @@ void CgiMaster::handleChildProcess()
   // envvar
   char **envp = envToCArray();
   char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
+
   execve(fullCgiPath.c_str(), argv, envp);
+  std::cerr << strerror(errno) << std::endl;
   std::exit(EXIT_FAILURE);
 }
 
@@ -124,14 +125,27 @@ void CgiMaster::handleParentProcess()
   close(inpipe_[1]);
 }
 
+static std::string getTime() {
+  time_t rawtime;
+  struct tm *timeinfo;
+  char buffer[80];
+
+  time(&rawtime);
+  timeinfo = gmtime(&rawtime);
+
+  strftime(buffer, sizeof(buffer), "Date: %a, %d %b %Y %H:%M:%S GMT", timeinfo);
+  return std::string(buffer);
+}
+
 HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
 {
   HttpResponse response;
   std::istringstream iss(cgiResponse);
   std::string line;
+  bool statusSet = false;
 
   // Parse headers
-  while (std::getline(iss, line) && !line.empty() && line != "\r")
+  while (std::getline(iss, line) && !line.empty() && line != "\r\n")
   {
     size_t pos = line.find(":");
     if (pos != std::string::npos)
@@ -149,6 +163,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
         {
           throw http::responseStatusException(BAD_GATEWAY);
         }
+        statusSet = true;
       }
       else
       {
@@ -157,13 +172,32 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
     }
   }
 
+  // Set status to 200 OK if not included in CGI response
+  if (!statusSet)
+  {
+    response.setStatus(OK);
+  }
+
+  // Add Date header if status is not 204 or 304
+  HttpStatus status = response.getStatus();
+  if (status != NO_CONTENT && status != NOT_MODIFIED)
+  {
+    response.setHeader("Date", getTime());
+  }
+
   // Parse body
   std::string body;
   while (std::getline(iss, line))
   {
-    body += line + "\n";
+    if (!line.empty())
+    {
+      body += line + "\n";
+    }
   }
   response.setBody(body);
+
+  // Set Content-Length header
+  response.setHeader("Content-Length", ft::uitost(body.length()));
 
   return response;
 }

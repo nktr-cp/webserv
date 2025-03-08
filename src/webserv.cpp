@@ -17,6 +17,9 @@ Webserv::Webserv(const std::string &configFile) {
        it != portToConfigs.end(); it++) {
     servers_.push_back(Server(it->second));
   }
+
+  fd_v_pid_.clear();
+  fd_v_client_.clear();
 }
 
 void Webserv::createServerSockets() {
@@ -152,9 +155,42 @@ void Webserv::run() {
 
       if (!isServerSocket) {
         if (events_[i].events & EPOLLIN) {
-          // TODO: need to check if the request is CGI or not
           try {
-            handleClientData(fd);
+            // outgoing CGI response if fd is already registered in rfdtopid_
+            if (fd_v_pid_.count(fd)) {
+              //read CGI response
+              char buf[1024];
+              std::string cgiResponse;
+              ssize_t read_bytes;
+
+              while ((read_bytes = read(fd, buf, 1024)) > 0) {
+                cgiResponse.append(buf, read_bytes);
+              }
+              //TODO: may need to check if the response if empty
+              // convert CGI response to HttpResponse
+              HttpResponse response = CgiMaster::convertCgiResponse(cgiResponse);
+              // delete pid/cgi fd/client fd from fd_v_pid_ and fd_v_client_
+              int pid = fd_v_pid_[fd];
+              int client_fd = fd_v_client_[fd];
+              fd_v_pid_.erase(fd);
+              fd_v_client_.erase(fd);
+
+              int status;
+              waitpid(pid, &status, 0);
+              //check exit status
+              if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                //send response to client
+                sendResponse(client_fd, response, true);
+              } else {
+                //send 500 Internal Server Error
+                response.setStatus(INTERNAL_SERVER_ERROR);
+                sendResponse(client_fd, response, true);
+              }
+            }
+            else
+            {
+              handleClientData(fd);
+            }
           } catch (const SysCallFailed &e) {
           }
         } else if (events_[i].events & EPOLLOUT) {
@@ -178,18 +214,29 @@ void Webserv::run() {
 }
 
 void Webserv::handleTimeout() {
-  time_t currentTime = time(NULL);
-  std::vector<int> connectionsToClose;
+  // time_t currentTime = time(NULL);
 
   for (std::map<int, time_t>::iterator it = connections_.begin();
        it != connections_.end(); it++) {
-    if (currentTime - it->second > kTimeoutSec) {
-      connectionsToClose.push_back(it->first);
+    // timeout for CGI
+    // const time_t timeout_CGI = 10;
+    if (fd_v_client_.count(it->first)) {
+      int child_fd = it->first;
+      int client_fd = fd_v_client_[it->first];
+      HttpResponse response;
+      response.setStatus(GATEWAY_TIMEOUT);
+      registerSendEvent(client_fd, response, false);
+      pid_t pid = fd_v_pid_[child_fd];
+      fd_v_pid_.erase(child_fd);
+      fd_v_client_.erase(child_fd);
+      closeConnection(child_fd);
+      kill(pid, SIGKILL);
+      int status;
+      waitpid(pid, &status, 0);
     }
-  }
-
-  for (size_t i = 0; i < connectionsToClose.size(); i++) {
-    closeConnection(connectionsToClose[i]);
+    // if (currentTime - it->second > kTimeoutSec) {
+    //   closeConnection(it->first);
+    // }
   }
 }
 
@@ -314,7 +361,33 @@ void Webserv::handleClientData(int client_fd) {
       RequestHandler rh = server.getHander(request, response);
       // CGIリクエストの場合
       if (rh.isCGIRequest()) {
-        continue;
+        std::pair<pid_t, int> pid_fd;
+        try {
+          CgiMaster cgi(&request, rh.getLocation());
+          pid_fd = cgi.execute();
+        } catch (const SysCallFailed &e) {
+          response.setStatus(INTERNAL_SERVER_ERROR);
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        } catch (const http::responseStatusException &e) {
+          response.setStatus(e.getStatus());
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        }
+        fd_v_pid_[pid_fd.second] = pid_fd.first;
+        fd_v_client_[pid_fd.second] = client_fd;
+        //register CGI fd to epoll
+        connections_[pid_fd.second] = time(NULL);
+        struct epoll_event ev;
+        ev.events = EPOLLIN | EPOLLET;
+        ev.data.fd = pid_fd.second;
+        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, pid_fd.second, &ev) == -1) {
+          throw SysCallFailed("epoll_ctl add");
+        }
+        requests.erase(client_fd);
+        return;
       } else {
         server.handleRequest(request, response, rh);
       }
@@ -346,5 +419,7 @@ void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bo
   std::fill(buffer_.begin(), buffer_.end(), 0);
   if (!keepAlive) {
     closeConnection(client_fd);
+  } else {
+    connections_[client_fd] = time(NULL);
   }
 }

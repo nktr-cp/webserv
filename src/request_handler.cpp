@@ -435,3 +435,8 @@ bool RequestHandler::isCGIRequest() const
 {
   return location_->isCgi();
 }
+
+const Location *RequestHandler::getLocation() const
+{
+  return location_;
+}
