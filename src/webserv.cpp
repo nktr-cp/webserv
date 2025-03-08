@@ -278,7 +278,7 @@ void Webserv::handleClientData(int client_fd) {
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
-      sendResponse(client_fd, response, request.keepAlive);
+      registerSendEvent(client_fd, response, request.keepAlive);
       requests.erase(client_fd);
       return;
     }
@@ -292,12 +292,12 @@ void Webserv::handleClientData(int client_fd) {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
-    sendResponse(client_fd, response, request.keepAlive);
+    registerSendEvent(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   } catch (const std::exception &e) {
     response.setStatus(INTERNAL_SERVER_ERROR);
-    sendResponse(client_fd, response, request.keepAlive);
+    registerSendEvent(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   }
@@ -311,7 +311,13 @@ void Webserv::handleClientData(int client_fd) {
     if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
       Server &server = servers_[i];
-      server.handleRequest(request, response);
+      RequestHandler rh = server.getHander(request, response);
+      // CGIリクエストの場合
+      if (rh.isCGIRequest()) {
+        continue;
+      } else {
+        server.handleRequest(request, response, rh);
+      }
       break;
     }
   }
@@ -319,8 +325,13 @@ void Webserv::handleClientData(int client_fd) {
     response.setStatus(NOT_FOUND);
   }
 
-  response_buffers_[client_fd] = std::make_pair(response, request.keepAlive);
+  registerSendEvent(client_fd, response, request.keepAlive);
   requests.erase(client_fd);
+}
+
+void Webserv::registerSendEvent(int client_fd, const HttpResponse &response, bool keepAlive) {
+  response_buffers_[client_fd] = std::make_pair(response, keepAlive);
+
   struct epoll_event ev;
   ev.events = EPOLLOUT | EPOLLET;
   ev.data.fd = client_fd;

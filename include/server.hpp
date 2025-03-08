@@ -28,7 +28,8 @@ class Server {
   ~Server();
 
   void createSocket();
-  void handleRequest(HttpRequest& request, HttpResponse& response);
+  RequestHandler getHander(HttpRequest& request, HttpResponse& response);
+  void handleRequest(HttpRequest &request, HttpResponse &response, RequestHandler &handler);
 
   int getServerFd() const;
   std::vector<ServerConfig> getConfig() const;

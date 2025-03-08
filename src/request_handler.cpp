@@ -414,19 +414,24 @@ void RequestHandler::
 
 void RequestHandler::handleCGIRequest()
 {//WIP
-  CgiMaster cgi(request_, response_, location_);
-  try
-  {
-    cgi.execute();
-  }
-  catch (SysCallFailed &e)
-  {
-    response_->setStatus(INTERNAL_SERVER_ERROR);
-    return;
-  }
-  catch (http::responseStatusException &e)
-  {
-    response_->setStatus(e.getStatus());
-    return;
-  }
+  // CgiMaster cgi(request_, response_, location_);
+  // try
+  // {
+  //   cgi.execute();
+  // }
+  // catch (SysCallFailed &e)
+  // {
+  //   response_->setStatus(INTERNAL_SERVER_ERROR);
+  //   return;
+  // }
+  // catch (http::responseStatusException &e)
+  // {
+  //   response_->setStatus(e.getStatus());
+  //   return;
+  // }
+}
+
+bool RequestHandler::isCGIRequest() const
+{
+  return location_->isCgi();
 }

@@ -51,7 +51,7 @@ int Server::getServerFd() const { return server_fd_; }
 
 std::vector<ServerConfig> Server::getConfig() const { return config_; }
 
-void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
+RequestHandler Server::getHander(HttpRequest &request, HttpResponse &response) {
   // 該当するコンフィグを探す
   size_t tgt_index = 0;
   while (tgt_index < config_.size()) {
@@ -63,7 +63,10 @@ void Server::handleRequest(HttpRequest& request, HttpResponse& response) {
   if (tgt_index == config_.size()) {
     tgt_index = 0;
   }
-  RequestHandler handler(request, response, config_[tgt_index]);
+  return RequestHandler(request, response, config_[tgt_index]);
+}
+
+void Server::handleRequest(HttpRequest &request, HttpResponse &response, RequestHandler &handler) {
   handler.process();
   sessionManager_.setSessionInfo(request, response);
 }

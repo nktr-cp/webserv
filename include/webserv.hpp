@@ -30,6 +30,8 @@ class Webserv {
   void handleTimeout();
   void closeConnection(int sock_fd);
 
+  void registerSendEvent(int client_fd, const HttpResponse &response, bool keepAlive);
+
 #ifdef __APPLE__
   int kq_;
   std::vector<struct kevent> events_;
