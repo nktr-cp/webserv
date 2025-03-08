@@ -22,6 +22,8 @@ class Webserv {
  private:
   std::vector<Server> servers_;
   std::map<int, time_t> connections_;
+  // key: client_fd, value: HttpRequest, keepAlive
+  std::map<int, std::pair<HttpResponse, bool> > response_buffers_;
 
   void createServerSockets();
   void sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive);

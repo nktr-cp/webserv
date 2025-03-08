@@ -151,9 +151,25 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        try {
-          handleClientData(fd);
-        } catch (const SysCallFailed &e) {
+        if (events_[i].events & EPOLLIN) {
+          // TODO: need to check if the request is CGI or not
+          try {
+            handleClientData(fd);
+          } catch (const SysCallFailed &e) {
+          }
+        } else if (events_[i].events & EPOLLOUT) {
+          try {
+            if (response_buffers_.count(fd)) {
+              std::pair<HttpResponse, bool> response_pair = response_buffers_[fd];
+              HttpResponse response = response_pair.first;
+              bool keepAlive = response_pair.second;
+              sendResponse(fd, response, keepAlive);
+              response_buffers_.erase(fd);
+              epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL);
+              close(fd);
+            }
+          } catch (const SysCallFailed &e) {
+          }
         }
       }
     }
@@ -302,9 +318,15 @@ void Webserv::handleClientData(int client_fd) {
   if (!server_found) {
     response.setStatus(NOT_FOUND);
   }
-  // レスポンスをクライアントに送信
-  sendResponse(client_fd, response, request.keepAlive);
+
+  response_buffers_[client_fd] = std::make_pair(response, request.keepAlive);
   requests.erase(client_fd);
+  struct epoll_event ev;
+  ev.events = EPOLLOUT | EPOLLET;
+  ev.data.fd = client_fd;
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
+    throw SysCallFailed("epoll_ctl mod");
+  }
 }
 
 void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive) {
