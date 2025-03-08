@@ -413,8 +413,7 @@ void RequestHandler::
 }
 
 void RequestHandler::handleCGIRequest()
-{
-
+{//WIP
   CgiMaster cgi(request_, response_, location_);
   try
   {

@@ -14,29 +14,24 @@
 class CgiMaster
 {
 private:
-  void setEnvironment();
-  void createPipes();
-  void handleChildProcess();
-  void handleParentProcess();
-
   const HttpRequest *request_;
-  HttpResponse *response_;
-  std::string cgiPath;
+  const Location *location_;
   std::map<std::string, std::string> env_;
   int inpipe_[2];
   int outpipe_[2];
-  pid_t pid_;
-  std::string output_;
+  std::string cgiPath_;
 
+  void setEnvironment();
+  void createPipes();
   char **envToCArray();
-  void generateHTTPHeader();
 
 public:
-  CgiMaster(const HttpRequest *request, HttpResponse *response,
-            const Location *location);
+  CgiMaster(const HttpRequest *request, const Location *location);
   ~CgiMaster();
-
-  void execute();
+  std::pair<pid_t, int> execute();
+  void handleChildProcess();
+  void handleParentProcess();
+  HttpResponse convertCgiResponse(const std::string &cgiResponse);
 };
 
 #endif
