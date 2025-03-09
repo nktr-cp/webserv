@@ -6,6 +6,7 @@ CgiMaster::CgiMaster(const HttpRequest *request, const Location *location)
 {
   setEnvironment();
   createPipes();
+  identifyInterpreter();
 }
 
 CgiMaster::~CgiMaster()
@@ -37,6 +38,29 @@ void CgiMaster::createPipes()
   if (pipe(inpipe_) == -1 || pipe(outpipe_) == -1)
   {
     throw SysCallFailed("pipe");
+  }
+}
+
+void CgiMaster::identifyInterpreter()
+{
+  size_t pos = cgiPath_.find_last_of('.');
+  if (pos == std::string::npos)
+  {
+    interpreter_ = UNKNOWN;
+    return;
+  }
+  std::string extension = cgiPath_.substr(pos + 1);
+  if (extension == "py")
+  {
+    interpreter_ = PYTHON;
+  }
+  else if (extension == "sh")
+  {
+    interpreter_ = SH;
+  }
+  else
+  {
+    interpreter_ = UNKNOWN;
   }
 }
 
@@ -128,9 +152,21 @@ void CgiMaster::handleChildProcess()
 
     // envvar
     char **envp = envToCArray();
-    char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
 
-    execve(fullCgiPath.c_str(), argv, envp);
+    // Use the pre-identified interpreter
+    const char *interpreterPath = NULL;
+    if (interpreter_ == PYTHON)
+    {
+      interpreterPath = "/usr/bin/python3";
+    }
+    else
+    {
+      interpreterPath = "/bin/sh";
+    }
+
+    char *argv[] = {const_cast<char *>(interpreterPath), const_cast<char *>(fullCgiPath.c_str()), NULL};
+    // write(STDOUT_FILENO, "\n", 1);
+    execve(interpreterPath, argv, envp);
     throw SysCallFailed("execve");
   }
   catch (SysCallFailed &e) {
@@ -162,6 +198,7 @@ static std::string getTime() {
 HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
 {
   HttpResponse response;
+  // std::istringstream iss(cgiResponse.substr(1)); // Skip first newline
   std::istringstream iss(cgiResponse);
   std::string line;
   bool statusSet = false;

@@ -71,7 +71,22 @@ void Webserv::run() {
 
       if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
         try {
-          closeConnection(fd);
+          HttpResponse error;
+          
+          if (fd_v_pid_.count(fd)) {
+            int client_fd = fd_v_client_[fd];
+            fd_v_client_.erase(fd);
+            fd_v_pid_.erase(fd);
+            closeConnection(fd);
+
+            error.setStatus(BAD_GATEWAY);
+            std::string res_str = error.encode();
+            send(client_fd, res_str.c_str(), res_str.length(), 0);
+            std::fill(buffer_.begin(), buffer_.end(), 0);
+          } else {
+            error.setStatus(INTERNAL_SERVER_ERROR);
+            sendResponse(fd, error, false);
+          }
         } catch (const SysCallFailed &e) {
         }
         continue;

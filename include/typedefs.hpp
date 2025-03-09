@@ -13,6 +13,9 @@
 #define GATEWAY_TIMEOUT_SECONDS 10
 #define FRIENDLY_ERROR_PAGE_LENGTH 512
 
+#define PYTHON_INTERPRETER "/usr/bin/python3"
+#define SHELL_INTERPRETER "/bin/sh"
+
 class VersionInfo {
  public:
   static const std::string kProgramName;

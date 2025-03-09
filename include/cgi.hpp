@@ -14,14 +14,22 @@
 class CgiMaster
 {
 private:
+  enum interpreter
+  {
+    PYTHON,
+    SH,
+    UNKNOWN
+  };
   const HttpRequest *request_;
   std::map<std::string, std::string> env_;
   int inpipe_[2];
   int outpipe_[2];
   std::string cgiPath_;
+  interpreter interpreter_;
 
   void setEnvironment();
   void createPipes();
+  void identifyInterpreter();
   char **envToCArray();
 
 public:
