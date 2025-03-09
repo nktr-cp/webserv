@@ -20,6 +20,8 @@ Webserv::Webserv(const std::string &configFile) {
 
   fd_v_pid_.clear();
   fd_v_client_.clear();
+  connections_.clear();
+  response_buffers_.clear();
 }
 
 void Webserv::createServerSockets() {
@@ -104,22 +106,28 @@ void Webserv::run() {
               // convert CGI response to HttpResponse
               HttpResponse response = CgiMaster::convertCgiResponse(cgiResponse);
               // delete pid/cgi fd/client fd from fd_v_pid_ and fd_v_client_
-              int pid = fd_v_pid_[fd];
+              pid_t pid = fd_v_pid_[fd];
               int client_fd = fd_v_client_[fd];
               fd_v_pid_.erase(fd);
               fd_v_client_.erase(fd);
+              closeConnection(fd);
 
               int status;
               waitpid(pid, &status, 0);
               //check exit status
               if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
                 //send response to client
-                sendResponse(client_fd, response, true);
               } else {
                 //send 500 Internal Server Error
                 response.setStatus(INTERNAL_SERVER_ERROR);
-                sendResponse(client_fd, response, true);
               }
+
+              // note: サーバーから直で送信ではないので
+              // connections_の更新などを行ってはダメで、connections_の削除もinvalid
+              // 単にsendするだけでよい
+              std::string res_str = response.encode();
+              send(client_fd, res_str.c_str(), res_str.length(), 0);
+              std::fill(buffer_.begin(), buffer_.end(), 0);
             }
             else
             {
@@ -158,7 +166,13 @@ void Webserv::handleTimeout() {
       int client_fd = fd_v_client_[it->first];
       HttpResponse response;
       response.setStatus(GATEWAY_TIMEOUT);
-      registerSendEvent(client_fd, response, false);
+
+      // ここも同様に、サーバーから直で送信ではないので
+      // connections_の更新などを行ってはダメで、connections_の削除もinvalid
+      std::string res_str = response.encode();
+      send(client_fd, res_str.c_str(), res_str.length(), 0);
+      std::fill(buffer_.begin(), buffer_.end(), 0);
+
       pid_t pid = fd_v_pid_[child_fd];
       fd_v_pid_.erase(child_fd);
       fd_v_client_.erase(child_fd);
@@ -166,8 +180,7 @@ void Webserv::handleTimeout() {
       kill(pid, SIGKILL);
       int status;
       waitpid(pid, &status, 0);
-    }
-    if (currentTime - it->second > kTimeoutSec) {
+    } else if (currentTime - it->second > kTimeoutSec) {
       closeConnection(it->first);
     }
   }
