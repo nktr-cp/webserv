@@ -41,6 +41,18 @@ std::string statusToString(HttpStatus status) {
       return "Service Unavailable";
     case GATEWAY_TIMEOUT:
       return "Gateway Timeout";
+    case CREATED:
+      return "Created";
+    case NO_CONTENT:
+      return "No Content";
+    case MOVED_PERMANENTLY:
+      return "Moved Permanently";
+    case SEE_OTHER:
+      return "See Other";
+    case NOT_MODIFIED:
+      return "Not Modified";
+    case USE_PROXY:
+      return "Use Proxy";
     default:
       return "I'm a teapot";
   }
