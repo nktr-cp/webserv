@@ -1,25 +1,22 @@
 #include "cgi.hpp"
-
 #include "webserv.hpp"
 
-CgiMaster::CgiMaster(const HttpRequest *request, HttpResponse *response,
-                     const Location *location)
-    : request_(request), response_(response), cgiPath(location->getCgiPath())
+CgiMaster::CgiMaster(const HttpRequest *request, const Location *location)
+    : request_(request), cgiPath_(location->getCgiPath())
 {
   setEnvironment();
   createPipes();
+  identifyInterpreter();
 }
 
 CgiMaster::~CgiMaster()
 {
   close(inpipe_[0]);
   close(inpipe_[1]);
-  close(outpipe_[0]);
   close(outpipe_[1]);
 }
 
-void CgiMaster::setEnvironment()
-{ // TODO:ない可能性があるものの確認
+void CgiMaster::setEnvironment() {
   env_["REQUEST_METHOD"] = http::methodToString(request_->getMethod());
   env_["REQUEST_URI"] = request_->getUri();
   env_["SERVER_SOFTWARE"] = VersionInfo::kProgramName;
@@ -27,13 +24,13 @@ void CgiMaster::setEnvironment()
   env_["SERVER_PORT"] = request_->getHostPort();
   env_["GATEWAY_INTERFACE"] = VersionInfo::kCgiVersion;
   env_["SERVER_PROTOCOL"] = VersionInfo::kHttpVersion;
-  env_["SCRIPT_FILENAME"] = cgiPath;
-  env_["SCRIPT_NAME"] = cgiPath;
+  env_["SCRIPT_FILENAME"] = cgiPath_;
+  env_["SCRIPT_NAME"] = cgiPath_;
   env_["CONTENT_LENGTH"] = ft::uitost(request_->getBody().length());
   env_["PATH_INFO"] = request_->getUri();
   env_["PATH_TRANSLATED"] = request_->getUri();
   env_["QUERY_STRING"] = request_->getQueryAsStr();
-  env_["HTTP_COOKIE"] = request_->getHeader("Cookie");
+  env_["HTTP_COOKIE"] = request_->getHeader("Cookie"); 
 }
 
 void CgiMaster::createPipes()
@@ -44,28 +41,26 @@ void CgiMaster::createPipes()
   }
 }
 
-void CgiMaster::execute()
+void CgiMaster::identifyInterpreter()
 {
-  pid_ = fork();
-  if (pid_ == -1)
+  size_t pos = cgiPath_.find_last_of('.');
+  if (pos == std::string::npos)
   {
-    throw SysCallFailed("fork");
+    interpreter_ = UNKNOWN;
+    return;
   }
-
-  if (pid_ == 0)
+  std::string extension = cgiPath_.substr(pos + 1);
+  if (extension == "py")
   {
-    handleChildProcess();
+    interpreter_ = PYTHON;
+  }
+  else if (extension == "sh")
+  {
+    interpreter_ = SH;
   }
   else
   {
-    handleParentProcess();
-    generateHTTPHeader();
-    size_t rnrn = output_.find("\r\n\r\n");
-    size_t nn = output_.find("\n\n");
-    if (rnrn == std::string::npos && nn == std::string::npos)
-      return;
-    size_t pos = rnrn == std::string::npos ? nn + 2 : rnrn + 4;
-    response_->setBody(output_.substr(pos));
+    interpreter_ = UNKNOWN;
   }
 }
 
@@ -98,6 +93,36 @@ char **CgiMaster::envToCArray()
   return envp;
 }
 
+std::pair<pid_t, int> CgiMaster::execute()
+{
+  // Check if CGI path is legit
+  struct stat buffer;
+  if (stat(cgiPath_.c_str(), &buffer) != 0)
+  {
+    return std::make_pair(-1, errno); // Return errno for file not found or other stat errors
+  }
+  if (!(buffer.st_mode & S_IXUSR))
+  {
+    return std::make_pair(-1, EACCES); // Return EACCES for permission denied
+  }
+
+  pid_t pid_ = fork();
+  if (pid_ == -1)
+  {
+    throw SysCallFailed("fork");
+  }
+
+  if (pid_ == 0)
+  {
+    handleChildProcess();
+  }
+  else
+  {
+    handleParentProcess();
+  }
+  return std::make_pair(pid_, outpipe_[0]);
+}
+
 void CgiMaster::handleChildProcess()
 {
   close(inpipe_[1]);
@@ -108,20 +133,45 @@ void CgiMaster::handleChildProcess()
   close(outpipe_[1]);
   char cwd[PATH_MAX];
   std::string fullCgiPath;
-  if (cgiPath[0] != '/')
-  {
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
-      throw SysCallFailed("getcwd");
-    fullCgiPath = std::string(cwd) + "/" + cgiPath;
-  }
-  else
-    fullCgiPath = cgiPath;
 
-  // envvar
-  char **envp = envToCArray();
-  char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
-  execve(fullCgiPath.c_str(), argv, envp);
-  std::exit(EXIT_FAILURE);
+  try {
+    if (cgiPath_[0] != '/')
+    {
+      if (getcwd(cwd, sizeof(cwd)) == NULL)
+        throw SysCallFailed("getcwd");
+      fullCgiPath = std::string(cwd) + "/" + cgiPath_;
+    }
+    else
+      fullCgiPath = cgiPath_;
+
+    std::string cgiDir = fullCgiPath.substr(0, fullCgiPath.find_last_of('/'));
+    if (chdir(cgiDir.c_str()) == -1)
+    {
+      throw SysCallFailed("chdir");
+    }
+
+    // envvar
+    char **envp = envToCArray();
+
+    // Use the pre-identified interpreter
+    const char *interpreterPath = NULL;
+    if (interpreter_ == PYTHON)
+    {
+      interpreterPath = "/usr/bin/python3";
+    }
+    else
+    {
+      interpreterPath = "/bin/sh";
+    }
+
+    char *argv[] = {const_cast<char *>(interpreterPath), const_cast<char *>(fullCgiPath.c_str()), NULL};
+    // write(STDOUT_FILENO, "\n", 1);
+    execve(interpreterPath, argv, envp);
+    throw SysCallFailed("execve");
+  }
+  catch (SysCallFailed &e) {
+    exit(EXIT_FAILURE);
+  }
 }
 
 void CgiMaster::handleParentProcess()
@@ -131,131 +181,113 @@ void CgiMaster::handleParentProcess()
   std::string body = request_->getBody();
   write(inpipe_[1], body.c_str(), body.length());
   close(inpipe_[1]);
-
-  char buffer[BUFFER_SIZE];
-  ssize_t n;
-
-#ifdef __APPLE__
-  int kq = kqueue();
-  if (kq == -1)
-  {
-    throw SysCallFailed("kqueue");
-  }
-
-  struct kevent change;
-  EV_SET(&change, outpipe_[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-
-  struct timespec timeout;
-  timeout.tv_sec = GATEWAY_TIMEOUT_SECONDS;
-  timeout.tv_nsec = 0;
-
-  int ret = kevent(kq, &change, 1, &change, 1, &timeout);
-  if (ret == -1)
-  {
-    close(kq);
-    throw SysCallFailed("kevent");
-  }
-  else if (ret == 0)
-  {
-    close(kq);
-    signal(SIGCHLD, SIG_IGN);
-    throw http::responseStatusException(GATEWAY_TIMEOUT);
-  }
-
-  if (change.filter == EVFILT_READ)
-  {
-    while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
-      output_.append(buffer, n);
-  }
-  close(kq);
-
-#elif __linux__
-  int epfd = epoll_create1(0);
-  if (epfd == -1)
-  {
-    throw SysCallFailed("epoll_create1");
-  }
-
-  struct epoll_event event;
-  event.events = EPOLLIN;
-  event.data.fd = outpipe_[0];
-
-  if (epoll_ctl(epfd, EPOLL_CTL_ADD, outpipe_[0], &event) == -1)
-  {
-    close(epfd);
-    throw SysCallFailed("epoll_ctl");
-  }
-
-  struct epoll_event events[1];
-  int ret = epoll_wait(epfd, events, 1, GATEWAY_TIMEOUT_SECONDS * 1000);
-  if (ret == -1)
-  {
-    close(epfd);
-    throw SysCallFailed("epoll_wait");
-  }
-  else if (ret == 0)
-  {
-    close(epfd);
-    signal(SIGCHLD, SIG_IGN);
-    throw http::responseStatusException(GATEWAY_TIMEOUT);
-  }
-
-  if (events[0].events & EPOLLIN)
-  {
-    while ((n = read(outpipe_[0], buffer, BUFFER_SIZE)) > 0)
-      output_.append(buffer, n);
-  }
-  close(epfd);
-
-#endif
-
-  close(outpipe_[0]);
-  int status;
-  waitpid(pid_, &status, 0);
-  if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
-  {
-    throw http::responseStatusException(INTERNAL_SERVER_ERROR);
-  }
 }
 
-void CgiMaster::generateHTTPHeader()
+static std::string getTime() {
+  time_t rawtime;
+  struct tm *timeinfo;
+  char buffer[80];
+
+  time(&rawtime);
+  timeinfo = gmtime(&rawtime);
+
+  strftime(buffer, sizeof(buffer), "Date: %a, %d %b %Y %H:%M:%S GMT", timeinfo);
+  return std::string(buffer);
+}
+
+HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
 {
+  HttpResponse response;
+  // std::istringstream iss(cgiResponse.substr(1)); // Skip first newline
+  std::istringstream iss(cgiResponse);
   std::string line;
-  std::istringstream iss(output_);
-  while (std::getline(iss, line))
+  bool statusSet = false;
+  bool contentTypeSet = false;
+
+  // Parse headers
+  while (std::getline(iss, line) && !line.empty() && line != "\r\n")
   {
-    if (line.empty())
-    {
-      break;
-    }
     size_t pos = line.find(":");
-    if (pos == std::string::npos)
+    if (pos != std::string::npos)
     {
-      continue;
-    }
-    std::string key = line.substr(0, pos);
-    std::string value = line.substr(pos + 1);
-    if (key == "Status")
-    {
-      std::istringstream iss(value);
-      std::string status;
-      iss >> status;
-      unsigned int range[] = {
-          100,
-          599}; // 本来はチェックしない、すなわち"Status: 999 GOMI"でも通る
-      try
+      std::string key = line.substr(0, pos);
+      std::string value = line.substr(pos + 1);
+      if (key == "Status")
       {
-        response_->setStatus(static_cast<HttpStatus>(ft::stoui(status, range)));
+        std::istringstream statusStream(value);
+        std::string statusCode;
+        statusStream >> statusCode;
+        const unsigned int range[] = {100, 599};
+        try {
+          response.setStatus(static_cast<HttpStatus>(ft::stoui(statusCode, range)));
+        } catch (ArgOutOfRange &e) {
+          response.setStatus(BAD_GATEWAY);
+          return response;
+        }
+        if (!(statusStream >> statusCode) || statusCode != http::statusToString(response.getStatus()))
+        {
+          response.setStatus(BAD_GATEWAY);
+          return response;
+        }
+        statusSet = true;
       }
-      catch (const std::exception &e)
+      else
       {
-        throw http::responseStatusException(BAD_GATEWAY);
+        response.setHeader(key, value);
+        if (key == "Content-type")
+        {
+          contentTypeSet = true;
+        }
       }
-      if (!(iss >> status) ||
-          status != http::statusToString(response_->getStatus()))
-        throw http::responseStatusException(BAD_GATEWAY);
     }
     else
-      response_->setHeader(key, value);
+    {
+      response.setStatus(BAD_GATEWAY); // Malformed header
+      return response;
+    }
   }
+
+  // Ensure Content-type header is present
+  if (!contentTypeSet)
+  {
+    response.setStatus(BAD_GATEWAY);
+    return response;
+  }
+
+  // Set status to 200 OK if not included in CGI response
+  if (!statusSet)
+  {
+    response.setStatus(OK);
+  }
+
+  // Add Date header if status is not 204 or 304
+  HttpStatus status = response.getStatus();
+  if (status != NO_CONTENT && status != NOT_MODIFIED)
+  {
+    response.setHeader("Date", getTime());
+  }
+
+  // Parse body
+  std::string body;
+  while (std::getline(iss, line))
+  {
+    if (!line.empty())
+    {
+      body += line + "\n";
+    }
+  }
+
+  // Ensure body is not empty if expected
+  if (body.empty() && status != NO_CONTENT && status != NOT_MODIFIED)
+  {
+    response.setStatus(BAD_GATEWAY);
+    return response;
+  }
+
+  response.setBody(body);
+
+  // Set Content-Length header
+  response.setHeader("Content-Length", ft::uitost(body.length()));
+
+  return response;
 }

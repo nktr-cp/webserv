@@ -347,19 +347,29 @@ void RequestHandler::handleStaticGet()
   response_->setStatus(OK);
 }
 
-void RequestHandler::handleStaticPost()
-{
+void RequestHandler::handleStaticPost() {
   // rootPath_ + relativePath_
   // にファイルを保存し、responseにステータスを書き込む
   std::string path = rootPath_ + relativePath_;
   std::ofstream ofs(path.c_str());
-  if (!ofs)
-  {
+  if (!ofs) {
     response_->setStatus(FORBIDDEN);
     return;
   }
   ofs << request_->getBody();
-  response_->setStatus(OK);
+  path = request_->getHostName() + ":" + request_->getHostPort() +
+         location_->getName() + relativePath_;
+  std::string path_trimmed;
+  char prev;
+  for (size_t i = 0; i < path.size(); i++) {
+    if (path[i] == '/' && prev == '/') {
+      continue;
+    }
+    path_trimmed += path[i];
+    prev = path[i];
+  }
+  response_->setHeader("Location", path_trimmed);
+  response_->setStatus(CREATED);
 }
 
 void RequestHandler::
@@ -413,21 +423,30 @@ void RequestHandler::
 }
 
 void RequestHandler::handleCGIRequest()
-{
+{//WIP
+  // CgiMaster cgi(request_, response_, location_);
+  // try
+  // {
+  //   cgi.execute();
+  // }
+  // catch (SysCallFailed &e)
+  // {
+  //   response_->setStatus(INTERNAL_SERVER_ERROR);
+  //   return;
+  // }
+  // catch (http::responseStatusException &e)
+  // {
+  //   response_->setStatus(e.getStatus());
+  //   return;
+  // }
+}
 
-  CgiMaster cgi(request_, response_, location_);
-  try
-  {
-    cgi.execute();
-  }
-  catch (SysCallFailed &e)
-  {
-    response_->setStatus(INTERNAL_SERVER_ERROR);
-    return;
-  }
-  catch (http::responseStatusException &e)
-  {
-    response_->setStatus(e.getStatus());
-    return;
-  }
+bool RequestHandler::isCGIRequest() const
+{
+  return location_->isCgi();
+}
+
+const Location *RequestHandler::getLocation() const
+{
+  return location_;
 }

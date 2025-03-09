@@ -17,6 +17,11 @@ Webserv::Webserv(const std::string &configFile) {
        it != portToConfigs.end(); it++) {
     servers_.push_back(Server(it->second));
   }
+
+  fd_v_pid_.clear();
+  fd_v_client_.clear();
+  connections_.clear();
+  response_buffers_.clear();
 }
 
 void Webserv::createServerSockets() {
@@ -28,72 +33,6 @@ void Webserv::createServerSockets() {
 void Webserv::run() {
   createServerSockets();
 
-#ifdef __APPLE__
-  kq_ = kqueue();
-  if (kq_ == -1) {
-    throw SysCallFailed("kqueue");
-  }
-
-  // Register server sockets with kqueue
-  for (size_t i = 0; i < servers_.size(); i++) {
-    struct kevent ev;
-    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
-    if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-      throw SysCallFailed("kevent add");
-    }
-  }
-
-  events_.resize(kMaxEvents);
-  buffer_.resize(kBufferSize);
-
-  // Event loop for kqueue
-  while (true) {
-    struct timespec timeout = {kTimeoutSec, 0};
-
-    int nev;
-    try {
-      nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
-      if (nev < 0) {
-        throw SysCallFailed("kevent");
-      } else if (nev == 0) {
-        handleTimeout();
-      }
-    } catch (const SysCallFailed &e) {
-      continue;
-    }
-
-    for (int i = 0; i < nev; i++) {
-      int fd = events_[i].ident;
-
-      if (events_[i].flags & EV_EOF) {
-        try {
-          closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-        }
-        continue;
-      }
-
-      bool isServerSocket = false;
-      for (size_t i = 0; i < servers_.size(); i++) {
-        if (servers_[i].getServerFd() == fd) {
-          isServerSocket = true;
-          try {
-            handleNewConnection(fd);
-          } catch (const SysCallFailed &e) {
-          }
-          break;
-        }
-      }
-
-      if (!isServerSocket) {
-        try {
-          handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-        }
-      }
-    }
-  }
-#elif __linux__
   epoll_fd_ = epoll_create1(0);
   if (epoll_fd_ == -1) {
     throw SysCallFailed("epoll_create1");
@@ -101,7 +40,7 @@ void Webserv::run() {
 
   // Register server sockets with epoll
   struct epoll_event ev;
-  ev.events = EPOLLIN | EPOLLET;
+  ev.events = EPOLLIN;
   for (size_t i = 0; i < servers_.size(); i++) {
     ev.data.fd = servers_[i].getServerFd();
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, servers_[i].getServerFd(), &ev) ==
@@ -132,7 +71,22 @@ void Webserv::run() {
 
       if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
         try {
-          closeConnection(fd);
+          HttpResponse error;
+          
+          if (fd_v_pid_.count(fd)) {
+            int client_fd = fd_v_client_[fd];
+            fd_v_client_.erase(fd);
+            fd_v_pid_.erase(fd);
+            closeConnection(fd);
+
+            error.setStatus(BAD_GATEWAY);
+            std::string res_str = error.encode();
+            send(client_fd, res_str.c_str(), res_str.length(), 0);
+            std::fill(buffer_.begin(), buffer_.end(), 0);
+          } else {
+            error.setStatus(INTERNAL_SERVER_ERROR);
+            sendResponse(fd, error, false);
+          }
         } catch (const SysCallFailed &e) {
         }
         continue;
@@ -151,44 +105,106 @@ void Webserv::run() {
       }
 
       if (!isServerSocket) {
-        try {
-          handleClientData(fd);
-        } catch (const SysCallFailed &e) {
+        if (events_[i].events & EPOLLIN) {
+          try {
+            // outgoing CGI response if fd is already registered in rfdtopid_
+            if (fd_v_pid_.count(fd)) {
+              //read CGI response
+              char buf[1024];
+              std::string cgiResponse;
+              ssize_t read_bytes;
+
+              while ((read_bytes = read(fd, buf, 1024)) > 0) {
+                cgiResponse.append(buf, read_bytes);
+              }
+              //TODO: may need to check if the response if empty
+              // convert CGI response to HttpResponse
+              HttpResponse response = CgiMaster::convertCgiResponse(cgiResponse);
+              // delete pid/cgi fd/client fd from fd_v_pid_ and fd_v_client_
+              pid_t pid = fd_v_pid_[fd];
+              int client_fd = fd_v_client_[fd];
+              fd_v_pid_.erase(fd);
+              fd_v_client_.erase(fd);
+              closeConnection(fd);
+
+              int status;
+              waitpid(pid, &status, 0);
+              //check exit status
+              if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                //send response to client
+              } else {
+                //send 500 Internal Server Error
+                response.setStatus(INTERNAL_SERVER_ERROR);
+              }
+
+              // note: サーバーから直で送信ではないので
+              // connections_の更新などを行ってはダメで、connections_の削除もinvalid
+              // 単にsendするだけでよい
+              std::string res_str = response.encode();
+              send(client_fd, res_str.c_str(), res_str.length(), 0);
+              std::fill(buffer_.begin(), buffer_.end(), 0);
+            }
+            else
+            {
+              handleClientData(fd);
+            }
+          } catch (const SysCallFailed &e) {
+          }
+        } else if (events_[i].events & EPOLLOUT) {
+          try {
+            if (response_buffers_.count(fd)) {
+              std::pair<HttpResponse, bool> response_pair = response_buffers_[fd];
+              HttpResponse response = response_pair.first;
+              bool keepAlive = response_pair.second;
+              sendResponse(fd, response, keepAlive);
+              response_buffers_.erase(fd);
+              epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL);
+              close(fd);
+            }
+          } catch (const SysCallFailed &e) {
+          }
         }
       }
     }
   }
-#endif
 }
 
 void Webserv::handleTimeout() {
   time_t currentTime = time(NULL);
-  std::vector<int> connectionsToClose;
 
   for (std::map<int, time_t>::iterator it = connections_.begin();
        it != connections_.end(); it++) {
-    if (currentTime - it->second > kTimeoutSec) {
-      connectionsToClose.push_back(it->first);
-    }
-  }
+    // timeout for CGI
+    // const time_t timeout_CGI = 10;
+    if (fd_v_client_.count(it->first)) {
+      int child_fd = it->first;
+      int client_fd = fd_v_client_[it->first];
+      HttpResponse response;
+      response.setStatus(GATEWAY_TIMEOUT);
 
-  for (size_t i = 0; i < connectionsToClose.size(); i++) {
-    closeConnection(connectionsToClose[i]);
+      // ここも同様に、サーバーから直で送信ではないので
+      // connections_の更新などを行ってはダメで、connections_の削除もinvalid
+      std::string res_str = response.encode();
+      send(client_fd, res_str.c_str(), res_str.length(), 0);
+      std::fill(buffer_.begin(), buffer_.end(), 0);
+
+      pid_t pid = fd_v_pid_[child_fd];
+      fd_v_pid_.erase(child_fd);
+      fd_v_client_.erase(child_fd);
+      closeConnection(child_fd);
+      kill(pid, SIGKILL);
+      int status;
+      waitpid(pid, &status, 0);
+    } else if (currentTime - it->second > kTimeoutSec) {
+      closeConnection(it->first);
+    }
   }
 }
 
 void Webserv::closeConnection(int sock_fd) {
-#ifdef __APPLE__
-  struct kevent ev;
-  EV_SET(&ev, sock_fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-  if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-    throw SysCallFailed("kevent delete");
-  }
-#elif __linux__
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
     throw SysCallFailed("epoll_ctl delete");
   }
-#endif
   connections_.erase(sock_fd);
   // manより: If how is SHUT_RDWR, further sends and receives will be
   // disallowed.
@@ -216,22 +232,13 @@ void Webserv::handleNewConnection(int server_fd) {
     throw SysCallFailed("setsockopt");
   }
 
-#ifdef __APPLE__
-  struct kevent ev;
-  EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
-  if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-    close(client_fd);
-    throw SysCallFailed("kevent add");
-  }
-#elif __linux__
   struct epoll_event ev;
-  ev.events = EPOLLIN | EPOLLET;
+  ev.events = EPOLLIN;
   ev.data.fd = client_fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
     close(client_fd);
     throw SysCallFailed("epoll_ctl add");
   }
-#endif
   connections_[client_fd] = time(NULL);
 }
 
@@ -255,14 +262,14 @@ void Webserv::handleClientData(int client_fd) {
       break;
     } else if (recv_bytes == 0) {
       // Client closed connection
-      close(client_fd);
+      closeConnection(client_fd);
       requests.erase(client_fd);
       return;
     }
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
-      sendResponse(client_fd, response, request.keepAlive);
+      registerSendEvent(client_fd, response, request.keepAlive);
       requests.erase(client_fd);
       return;
     }
@@ -276,18 +283,17 @@ void Webserv::handleClientData(int client_fd) {
     request.parseRequest(request_data.c_str());
   } catch (const http::responseStatusException &e) {
     response.setStatus(e.getStatus());
-    sendResponse(client_fd, response, request.keepAlive);
+    registerSendEvent(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   } catch (const std::exception &e) {
     response.setStatus(INTERNAL_SERVER_ERROR);
-    sendResponse(client_fd, response, request.keepAlive);
+    registerSendEvent(client_fd, response, request.keepAlive);
     requests.erase(client_fd);
     return;
   }
 
   if (request.progress != HttpRequest::DONE) return ;
-
   // 該当するサーバーを探してリクエストを処理
   std::string port = request.getHostPort();
   bool server_found = false;
@@ -295,16 +301,72 @@ void Webserv::handleClientData(int client_fd) {
     if (servers_[i].getConfig().front().getPort() == port) {
       server_found = true;
       Server &server = servers_[i];
-      server.handleRequest(request, response);
+      RequestHandler rh = server.getHander(request, response);
+      // CGIリクエストの場合
+      if (rh.isCGIRequest()) {
+        std::pair<pid_t, int> pid_fd;
+        try {
+          CgiMaster cgi(&request, rh.getLocation());
+          pid_fd = cgi.execute();
+        } catch (const SysCallFailed &e) {
+          response.setStatus(INTERNAL_SERVER_ERROR);
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        } catch (const http::responseStatusException &e) {
+          response.setStatus(e.getStatus());
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        }
+        //error if pid is -1
+        if (pid_fd.first == -1) {
+          if (errno == ENOENT) {
+            response.setStatus(NOT_FOUND);
+          } else if (errno == EACCES) {
+            response.setStatus(FORBIDDEN);
+          } else {
+            response.setStatus(INTERNAL_SERVER_ERROR);
+          }
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        }
+        fd_v_pid_[pid_fd.second] = pid_fd.first;
+        fd_v_client_[pid_fd.second] = client_fd;
+        //register CGI fd to epoll
+        connections_[pid_fd.second] = time(NULL);
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = pid_fd.second;
+        if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, pid_fd.second, &ev) == -1) {
+          throw SysCallFailed("epoll_ctl add");
+        }
+        requests.erase(client_fd);
+        return;
+      } else {
+        server.handleRequest(request, response, rh);
+      }
       break;
     }
   }
   if (!server_found) {
     response.setStatus(NOT_FOUND);
   }
-  // レスポンスをクライアントに送信
-  sendResponse(client_fd, response, request.keepAlive);
+
+  registerSendEvent(client_fd, response, request.keepAlive);
   requests.erase(client_fd);
+}
+
+void Webserv::registerSendEvent(int client_fd, const HttpResponse &response, bool keepAlive) {
+  response_buffers_[client_fd] = std::make_pair(response, keepAlive);
+
+  struct epoll_event ev;
+  ev.events = EPOLLOUT;
+  ev.data.fd = client_fd;
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
+    throw SysCallFailed("epoll_ctl mod");
+  }
 }
 
 void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive) {
@@ -313,5 +375,7 @@ void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bo
   std::fill(buffer_.begin(), buffer_.end(), 0);
   if (!keepAlive) {
     closeConnection(client_fd);
+  } else {
+    connections_[client_fd] = time(NULL);
   }
 }

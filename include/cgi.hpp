@@ -14,29 +14,31 @@
 class CgiMaster
 {
 private:
-  void setEnvironment();
-  void createPipes();
-  void handleChildProcess();
-  void handleParentProcess();
-
+  enum interpreter
+  {
+    PYTHON,
+    SH,
+    UNKNOWN
+  };
   const HttpRequest *request_;
-  HttpResponse *response_;
-  std::string cgiPath;
   std::map<std::string, std::string> env_;
   int inpipe_[2];
   int outpipe_[2];
-  pid_t pid_;
-  std::string output_;
+  std::string cgiPath_;
+  interpreter interpreter_;
 
+  void setEnvironment();
+  void createPipes();
+  void identifyInterpreter();
   char **envToCArray();
-  void generateHTTPHeader();
 
 public:
-  CgiMaster(const HttpRequest *request, HttpResponse *response,
-            const Location *location);
+  CgiMaster(const HttpRequest *request, const Location *location);
   ~CgiMaster();
-
-  void execute();
+  std::pair<pid_t, int> execute();
+  void handleChildProcess();
+  void handleParentProcess();
+  static HttpResponse convertCgiResponse(const std::string &cgiResponse);
 };
 
 #endif

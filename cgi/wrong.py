@@ -4,12 +4,11 @@ import random
 import string
 import os
 
-time.sleep(5000)
 rand = ''.join(random.choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(10))
 method = os.getenv("REQUEST_METHOD", "N/A")
 
-# CGI header
-print("Content-type: text/html\n")
+# Malformatted CGI header (missing newline after Content-type)
+print("Content-type: text/html")
 
 # Output the HTML content
 print("<html>")

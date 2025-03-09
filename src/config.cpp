@@ -275,6 +275,15 @@ Config::Config(const std::string &filename) {
     throw std::runtime_error("Failed to open file: " + filename);
   }
 
+  struct stat s;
+  if (stat(filename.c_str(), &s) == 0) {
+    if (s.st_mode & S_IFDIR) {
+      throw std::runtime_error("Given path is a directory: " + filename);
+    }
+  } else {
+    throw std::runtime_error("Failed to stat file: " + filename);
+  }
+
   std::string line;
   while (std::getline(file, line)) {
     size_t pos = line.find_first_of("#");

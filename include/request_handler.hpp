@@ -52,4 +52,6 @@ public:
   RequestHandler &operator=(const RequestHandler &src);
 
   void process();
+  bool isCGIRequest() const;
+  const Location *getLocation() const;
 };
