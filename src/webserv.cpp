@@ -31,72 +31,6 @@ void Webserv::createServerSockets() {
 void Webserv::run() {
   createServerSockets();
 
-#ifdef __APPLE__
-  kq_ = kqueue();
-  if (kq_ == -1) {
-    throw SysCallFailed("kqueue");
-  }
-
-  // Register server sockets with kqueue
-  for (size_t i = 0; i < servers_.size(); i++) {
-    struct kevent ev;
-    EV_SET(&ev, servers_[i].getServerFd(), EVFILT_READ, EV_ADD, 0, 0, NULL);
-    if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-      throw SysCallFailed("kevent add");
-    }
-  }
-
-  events_.resize(kMaxEvents);
-  buffer_.resize(kBufferSize);
-
-  // Event loop for kqueue
-  while (true) {
-    struct timespec timeout = {kTimeoutSec, 0};
-
-    int nev;
-    try {
-      nev = kevent(kq_, NULL, 0, &events_[0], kMaxEvents, &timeout);
-      if (nev < 0) {
-        throw SysCallFailed("kevent");
-      } else if (nev == 0) {
-        handleTimeout();
-      }
-    } catch (const SysCallFailed &e) {
-      continue;
-    }
-
-    for (int i = 0; i < nev; i++) {
-      int fd = events_[i].ident;
-
-      if (events_[i].flags & EV_EOF) {
-        try {
-          closeConnection(fd);
-        } catch (const SysCallFailed &e) {
-        }
-        continue;
-      }
-
-      bool isServerSocket = false;
-      for (size_t i = 0; i < servers_.size(); i++) {
-        if (servers_[i].getServerFd() == fd) {
-          isServerSocket = true;
-          try {
-            handleNewConnection(fd);
-          } catch (const SysCallFailed &e) {
-          }
-          break;
-        }
-      }
-
-      if (!isServerSocket) {
-        try {
-          handleClientData(fd);
-        } catch (const SysCallFailed &e) {
-        }
-      }
-    }
-  }
-#elif __linux__
   epoll_fd_ = epoll_create1(0);
   if (epoll_fd_ == -1) {
     throw SysCallFailed("epoll_create1");
@@ -104,7 +38,7 @@ void Webserv::run() {
 
   // Register server sockets with epoll
   struct epoll_event ev;
-  ev.events = EPOLLIN | EPOLLET;
+  ev.events = EPOLLIN;
   for (size_t i = 0; i < servers_.size(); i++) {
     ev.data.fd = servers_[i].getServerFd();
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, servers_[i].getServerFd(), &ev) ==
@@ -210,11 +144,10 @@ void Webserv::run() {
       }
     }
   }
-#endif
 }
 
 void Webserv::handleTimeout() {
-  // time_t currentTime = time(NULL);
+  time_t currentTime = time(NULL);
 
   for (std::map<int, time_t>::iterator it = connections_.begin();
        it != connections_.end(); it++) {
@@ -234,24 +167,16 @@ void Webserv::handleTimeout() {
       int status;
       waitpid(pid, &status, 0);
     }
-    // if (currentTime - it->second > kTimeoutSec) {
-    //   closeConnection(it->first);
-    // }
+    if (currentTime - it->second > kTimeoutSec) {
+      closeConnection(it->first);
+    }
   }
 }
 
 void Webserv::closeConnection(int sock_fd) {
-#ifdef __APPLE__
-  struct kevent ev;
-  EV_SET(&ev, sock_fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-  if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-    throw SysCallFailed("kevent delete");
-  }
-#elif __linux__
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
     throw SysCallFailed("epoll_ctl delete");
   }
-#endif
   connections_.erase(sock_fd);
   // manより: If how is SHUT_RDWR, further sends and receives will be
   // disallowed.
@@ -279,22 +204,13 @@ void Webserv::handleNewConnection(int server_fd) {
     throw SysCallFailed("setsockopt");
   }
 
-#ifdef __APPLE__
-  struct kevent ev;
-  EV_SET(&ev, client_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
-  if (kevent(kq_, &ev, 1, NULL, 0, NULL) == -1) {
-    close(client_fd);
-    throw SysCallFailed("kevent add");
-  }
-#elif __linux__
   struct epoll_event ev;
-  ev.events = EPOLLIN | EPOLLET;
+  ev.events = EPOLLIN;
   ev.data.fd = client_fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
     close(client_fd);
     throw SysCallFailed("epoll_ctl add");
   }
-#endif
   connections_[client_fd] = time(NULL);
 }
 
@@ -318,7 +234,7 @@ void Webserv::handleClientData(int client_fd) {
       break;
     } else if (recv_bytes == 0) {
       // Client closed connection
-      close(client_fd);
+      closeConnection(client_fd);
       requests.erase(client_fd);
       return;
     }
@@ -393,7 +309,7 @@ void Webserv::handleClientData(int client_fd) {
         //register CGI fd to epoll
         connections_[pid_fd.second] = time(NULL);
         struct epoll_event ev;
-        ev.events = EPOLLIN | EPOLLET;
+        ev.events = EPOLLIN;
         ev.data.fd = pid_fd.second;
         if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, pid_fd.second, &ev) == -1) {
           throw SysCallFailed("epoll_ctl add");
@@ -418,7 +334,7 @@ void Webserv::registerSendEvent(int client_fd, const HttpResponse &response, boo
   response_buffers_[client_fd] = std::make_pair(response, keepAlive);
 
   struct epoll_event ev;
-  ev.events = EPOLLOUT | EPOLLET;
+  ev.events = EPOLLOUT;
   ev.data.fd = client_fd;
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
     throw SysCallFailed("epoll_ctl mod");
