@@ -350,7 +350,6 @@ void Webserv::handleClientData(int client_fd) {
   }
 
   if (request.progress != HttpRequest::DONE) return ;
-
   // 該当するサーバーを探してリクエストを処理
   std::string port = request.getHostPort();
   bool server_found = false;
@@ -372,6 +371,19 @@ void Webserv::handleClientData(int client_fd) {
           return;
         } catch (const http::responseStatusException &e) {
           response.setStatus(e.getStatus());
+          registerSendEvent(client_fd, response, request.keepAlive);
+          requests.erase(client_fd);
+          return;
+        }
+        //error if pid is -1
+        if (pid_fd.first == -1) {
+          if (errno == ENOENT) {
+            response.setStatus(NOT_FOUND);
+          } else if (errno == EACCES) {
+            response.setStatus(FORBIDDEN);
+          } else {
+            response.setStatus(INTERNAL_SERVER_ERROR);
+          }
           registerSendEvent(client_fd, response, request.keepAlive);
           requests.erase(client_fd);
           return;

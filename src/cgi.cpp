@@ -71,6 +71,17 @@ char **CgiMaster::envToCArray()
 
 std::pair<pid_t, int> CgiMaster::execute()
 {
+  // Check if CGI path is legit
+  struct stat buffer;
+  if (stat(cgiPath_.c_str(), &buffer) != 0)
+  {
+    return std::make_pair(-1, errno); // Return errno for file not found or other stat errors
+  }
+  if (!(buffer.st_mode & S_IXUSR))
+  {
+    return std::make_pair(-1, EACCES); // Return EACCES for permission denied
+  }
+
   pid_t pid_ = fork();
   if (pid_ == -1)
   {
@@ -98,22 +109,33 @@ void CgiMaster::handleChildProcess()
   close(outpipe_[1]);
   char cwd[PATH_MAX];
   std::string fullCgiPath;
-  if (cgiPath_[0] != '/')
-  {
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
-      throw SysCallFailed("getcwd");
-    fullCgiPath = std::string(cwd) + "/" + cgiPath_;
+
+  try {
+    if (cgiPath_[0] != '/')
+    {
+      if (getcwd(cwd, sizeof(cwd)) == NULL)
+        throw SysCallFailed("getcwd");
+      fullCgiPath = std::string(cwd) + "/" + cgiPath_;
+    }
+    else
+      fullCgiPath = cgiPath_;
+
+    std::string cgiDir = fullCgiPath.substr(0, fullCgiPath.find_last_of('/'));
+    if (chdir(cgiDir.c_str()) == -1)
+    {
+      throw SysCallFailed("chdir");
+    }
+
+    // envvar
+    char **envp = envToCArray();
+    char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
+
+    execve(fullCgiPath.c_str(), argv, envp);
+    throw SysCallFailed("execve");
   }
-  else
-    fullCgiPath = cgiPath_;
-
-  // envvar
-  char **envp = envToCArray();
-  char *argv[] = {const_cast<char *>(fullCgiPath.c_str()), NULL};
-
-  execve(fullCgiPath.c_str(), argv, envp);
-  std::cerr << strerror(errno) << std::endl;
-  std::exit(EXIT_FAILURE);
+  catch (SysCallFailed &e) {
+    exit(EXIT_FAILURE);
+  }
 }
 
 void CgiMaster::handleParentProcess()
@@ -143,6 +165,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
   std::istringstream iss(cgiResponse);
   std::string line;
   bool statusSet = false;
+  bool contentTypeSet = false;
 
   // Parse headers
   while (std::getline(iss, line) && !line.empty() && line != "\r\n")
@@ -158,18 +181,40 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
         std::string statusCode;
         statusStream >> statusCode;
         const unsigned int range[] = {100, 599};
-        response.setStatus(static_cast<HttpStatus>(ft::stoui(statusCode, range)));
+        try {
+          response.setStatus(static_cast<HttpStatus>(ft::stoui(statusCode, range)));
+        } catch (ArgOutOfRange &e) {
+          response.setStatus(BAD_GATEWAY);
+          return response;
+        }
         if (!(statusStream >> statusCode) || statusCode != http::statusToString(response.getStatus()))
         {
-          throw http::responseStatusException(BAD_GATEWAY);
+          response.setStatus(BAD_GATEWAY);
+          return response;
         }
         statusSet = true;
       }
       else
       {
         response.setHeader(key, value);
+        if (key == "Content-type")
+        {
+          contentTypeSet = true;
+        }
       }
     }
+    else
+    {
+      response.setStatus(BAD_GATEWAY); // Malformed header
+      return response;
+    }
+  }
+
+  // Ensure Content-type header is present
+  if (!contentTypeSet)
+  {
+    response.setStatus(BAD_GATEWAY);
+    return response;
   }
 
   // Set status to 200 OK if not included in CGI response
@@ -194,6 +239,14 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
       body += line + "\n";
     }
   }
+
+  // Ensure body is not empty if expected
+  if (body.empty() && status != NO_CONTENT && status != NOT_MODIFIED)
+  {
+    response.setStatus(BAD_GATEWAY);
+    return response;
+  }
+
   response.setBody(body);
 
   // Set Content-Length header
