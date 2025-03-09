@@ -9,9 +9,9 @@ def test_static():
 	try:
 		print("--- test correct static requeset with [GET POST DELETE] ---")
 		data = "testdata"
-		print("[1]sending POST request to http://localhost:8080/test/test, expecting 200")
+		print("[1]sending POST request to http://localhost:8080/test/test, expecting 201")
 		response = requests.post("http://localhost:8080/test/test", data=data)
-		assert response.status_code == 200, f"[1] Failed to get 200 response. {response.status_code}"
+		assert response.status_code == 201, f"[1] Failed to get 201 response. {response.status_code}"
 		print("[2]sending GET request to http://localhost:8080/test/test, expecting 200")
 		response = requests.get("http://localhost:8080/test/test")
 		assert response.status_code == 200, f"[2] Failed to get response from server. {response.status_code}"
