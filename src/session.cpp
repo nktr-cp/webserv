@@ -1,7 +1,6 @@
 #include "session.hpp"
 
 std::string Cookie::parseCookie(const std::string& raw) {
-  // MEMO: keyに対して柔軟にする必要がありそう
   std::string key = "user_id";
   std::string value = "";
   size_t pos = raw.find(key);

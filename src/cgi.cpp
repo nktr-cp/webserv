@@ -46,7 +46,7 @@ void CgiMaster::identifyInterpreter()
   size_t pos = cgiPath_.find_last_of('.');
   if (pos == std::string::npos)
   {
-    interpreter_ = UNKNOWN;
+    interpreter_ = BIN;
     return;
   }
   std::string extension = cgiPath_.substr(pos + 1);
@@ -105,6 +105,10 @@ std::pair<pid_t, int> CgiMaster::execute()
   {
     return std::make_pair(-1, EACCES); // Return EACCES for permission denied
   }
+  if (interpreter_ == UNKNOWN)
+  {
+    throw http::responseStatusException(BAD_GATEWAY);
+  }
 
   pid_t pid_ = fork();
   if (pid_ == -1)
@@ -155,17 +159,25 @@ void CgiMaster::handleChildProcess()
 
     // Use the pre-identified interpreter
     const char *interpreterPath = NULL;
+    char *argv[] = {NULL, const_cast<char *>(fullCgiPath.c_str()), NULL};
+
     if (interpreter_ == PYTHON)
     {
       interpreterPath = "/usr/bin/python3";
+      argv[0] = const_cast<char *>(interpreterPath);
     }
-    else
+    else if (interpreter_ == SH)
     {
       interpreterPath = "/bin/sh";
+      argv[0] = const_cast<char *>(interpreterPath);
+    }
+    else if (interpreter_ == BIN)
+    {
+      interpreterPath = fullCgiPath.c_str();
+      argv[0] = const_cast<char *>(interpreterPath);
+      argv[1] = NULL; // No additional arguments for binary executables
     }
 
-    char *argv[] = {const_cast<char *>(interpreterPath), const_cast<char *>(fullCgiPath.c_str()), NULL};
-    // write(STDOUT_FILENO, "\n", 1);
     execve(interpreterPath, argv, envp);
     throw SysCallFailed("execve");
   }
@@ -234,7 +246,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
       else
       {
         response.setHeader(key, value);
-        if (key == "Content-type")
+        if (key == "Content-Type")
         {
           contentTypeSet = true;
         }
@@ -247,7 +259,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
     }
   }
 
-  // Ensure Content-type header is present
+  // Ensure Content-Type header is present
   if (!contentTypeSet)
   {
     response.setStatus(BAD_GATEWAY);

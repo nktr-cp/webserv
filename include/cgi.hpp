@@ -18,6 +18,7 @@ private:
   {
     PYTHON,
     SH,
+    BIN,
     UNKNOWN
   };
   const HttpRequest *request_;
