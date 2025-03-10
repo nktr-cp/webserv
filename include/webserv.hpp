@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <map>
+#include <set>
 
 #include "config.hpp"
 #include "server.hpp"
@@ -24,6 +25,7 @@ class Webserv {
   std::map<int, pid_t> fd_v_pid_;
   std::map<int, int> fd_v_client_;
   std::map<int, bool> fd_v_kp_;
+  std::set<int> keep_alive_fds_;
 
   void createServerSockets();
   void sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive);
@@ -38,8 +40,8 @@ class Webserv {
 
   static const int kBufferSize = 1;
   static const int kMaxEvents = 16;
-  static const int kTimeoutSec = 10;
-  static const int kWaitTime = 10;
+  static const int kTimeoutSec = 5;
+  static const int kWaitTime = 5;
 
  public:
   Webserv();

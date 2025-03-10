@@ -3,6 +3,7 @@
 Webserv::Webserv() {}
 
 Webserv::Webserv(const std::string &configFile) {
+  signal(SIGPIPE, SIG_IGN);
   Config config(configFile);
 
   std::map<std::string, std::vector<ServerConfig> > portToConfigs;
@@ -18,10 +19,14 @@ Webserv::Webserv(const std::string &configFile) {
     servers_.push_back(Server(it->second));
   }
 
+  events_.resize(kMaxEvents);
+  buffer_.resize(kBufferSize);
+
   fd_v_pid_.clear();
   fd_v_client_.clear();
   connections_.clear();
   response_buffers_.clear();
+  keep_alive_fds_.clear();
 }
 
 void Webserv::createServerSockets() {
@@ -49,9 +54,6 @@ void Webserv::run() {
     }
   }
 
-  events_.resize(kMaxEvents);
-  buffer_.resize(kBufferSize);
-
   // Event loop for epoll
   while (true) {
     int nev =
@@ -69,7 +71,7 @@ void Webserv::run() {
     for (int i = 0; i < nev; i++) {
       int fd = events_[i].data.fd;
 
-      if (events_[i].events & (EPOLLHUP | EPOLLERR)) {
+      if (events_[i].events & EPOLLERR) {
         try {
           HttpResponse error;
           
@@ -176,8 +178,7 @@ void Webserv::handleTimeout() {
       HttpResponse response;
       response.setStatus(GATEWAY_TIMEOUT);
 
-      bool keepAlive = fd_v_kp_[client_fd];
-      registerSendEvent(client_fd, response, keepAlive);
+      registerSendEvent(client_fd, response, false);
       pid_t pid = fd_v_pid_[child_fd];
       fd_v_pid_.erase(child_fd);
       fd_v_client_.erase(child_fd);
@@ -195,6 +196,7 @@ void Webserv::closeConnection(int sock_fd) {
     throw SysCallFailed("epoll_ctl delete");
   }
   connections_.erase(sock_fd);
+  keep_alive_fds_.erase(sock_fd);
   // manより: If how is SHUT_RDWR, further sends and receives will be
   // disallowed.
   shutdown(sock_fd, SHUT_RDWR);
@@ -250,15 +252,20 @@ void Webserv::handleClientData(int client_fd) {
     if (recv_bytes < 0) {
       break;
     } else if (recv_bytes == 0) {
-      // Client closed connection
-      closeConnection(client_fd);
-      requests.erase(client_fd);
+      if (keep_alive_fds_.count(client_fd)) {
+        return;
+      } else {
+        // Client closed connection
+        response.setStatus(BAD_REQUEST);
+        registerSendEvent(client_fd, response, request.keepAlive);
+        requests.erase(client_fd);
+      }
       return;
     }
 
     if (total_bytes > HttpRequest::kMaxPayloadSize - recv_bytes) {
       response.setStatus(PAYLOAD_TOO_LARGE);
-      registerSendEvent(client_fd, response, request.keepAlive);
+      registerSendEvent(client_fd, response, false);
       requests.erase(client_fd);
       return;
     }
@@ -370,6 +377,7 @@ void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bo
     struct epoll_event ev;
     ev.events = EPOLLIN;
     ev.data.fd = client_fd;
+    keep_alive_fds_.insert(client_fd);
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
         throw SysCallFailed("epoll_ctl mod");
     }
