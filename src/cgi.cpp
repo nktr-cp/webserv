@@ -234,7 +234,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
       else
       {
         response.setHeader(key, value);
-        if (key == "Content-type")
+        if (key == "Content-Type")
         {
           contentTypeSet = true;
         }
@@ -247,7 +247,7 @@ HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
     }
   }
 
-  // Ensure Content-type header is present
+  // Ensure Content-Type header is present
   if (!contentTypeSet)
   {
     response.setStatus(BAD_GATEWAY);

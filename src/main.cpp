@@ -15,7 +15,7 @@ bool checkInterpreter(const std::string &interpreter) {
 
 int main(int ac, char **av) {
   if (!checkInterpreter("python") || !checkInterpreter("sh")) {
-    std::cerr << VersionInfo::kProgramName << ": Both " << PYTHON_INTERPRETER << " and " << SHELL_INTERPRETER << " must be installed" << std::endl;
+    std::cerr << VersionInfo::kProgramName << ": " << PYTHON_INTERPRETER << " and " << SHELL_INTERPRETER << " are required to run this program" << std::endl;
     return 1;
   }
 
@@ -31,16 +31,11 @@ int main(int ac, char **av) {
     configFile = av[1];
   }
 
-  Webserv webserv;
   try {
-    webserv = Webserv(configFile);
-  } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
-    return 1;
-  }
-  try {
+    Webserv webserv(configFile);
     webserv.run();
   } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
     return 1;
   }
   return 0;

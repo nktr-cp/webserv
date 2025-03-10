@@ -7,8 +7,8 @@ import os
 rand = ''.join(random.choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(10))
 method = os.getenv("REQUEST_METHOD", "N/A")
 
-# Malformatted CGI header (missing newline after Content-type)
-print("Content-type: text/html")
+# Malformatted CGI header (missing newline after Content-Type)
+print("Content-Type: text/html")
 
 # Output the HTML content
 print("<html>")

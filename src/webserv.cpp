@@ -129,17 +129,17 @@ void Webserv::run() {
 
               int status;
               waitpid(pid, &status, 0);
-              //check exit status
-              if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-                //send response to client
-              } else {
-                //send 500 Internal Server Error
-                response.setStatus(INTERNAL_SERVER_ERROR);
-              }
-
+              
               bool keepAlive = fd_v_kp_[client_fd];
               fd_v_kp_.erase(client_fd);
-              registerSendEvent(client_fd, response, keepAlive);
+              if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                registerSendEvent(client_fd, response, keepAlive);
+              } else {
+                HttpResponse error;
+                error.setStatus(INTERNAL_SERVER_ERROR);
+                registerSendEvent(client_fd, error, keepAlive);
+              }
+
             }
             else
             {
@@ -367,5 +367,11 @@ void Webserv::sendResponse(const int client_fd, const HttpResponse &response, bo
     closeConnection(client_fd);
   } else {
     connections_[client_fd] = time(NULL);
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = client_fd;
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
+        throw SysCallFailed("epoll_ctl mod");
+    }
   }
 }
