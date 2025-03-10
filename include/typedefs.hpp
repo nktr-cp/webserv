@@ -14,7 +14,7 @@
 #define FRIENDLY_ERROR_PAGE_LENGTH 512
 
 #define PYTHON_INTERPRETER "/usr/bin/python3"
-#define SHELL_INTERPRETER "/bin/sh"
+#define SHELL_INTERPRETER "/bin/bash"
 
 class VersionInfo {
  public:

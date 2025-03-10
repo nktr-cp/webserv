@@ -71,29 +71,6 @@ void Webserv::run() {
     for (int i = 0; i < nev; i++) {
       int fd = events_[i].data.fd;
 
-      if (events_[i].events & EPOLLERR) {
-        try {
-          HttpResponse error;
-          
-          if (fd_v_pid_.count(fd)) {
-            int client_fd = fd_v_client_[fd];
-            fd_v_client_.erase(fd);
-            fd_v_pid_.erase(fd);
-            closeConnection(fd);
-
-            error.setStatus(BAD_GATEWAY);
-            std::string res_str = error.encode();
-            send(client_fd, res_str.c_str(), res_str.length(), 0);
-            std::fill(buffer_.begin(), buffer_.end(), 0);
-          } else {
-            error.setStatus(INTERNAL_SERVER_ERROR);
-            sendResponse(fd, error, false);
-          }
-        } catch (const SysCallFailed &e) {
-        }
-        continue;
-      }
-
       bool isServerSocket = false;
       for (size_t i = 0; i < servers_.size(); i++) {
         if (servers_[i].getServerFd() == fd) {
@@ -106,47 +83,80 @@ void Webserv::run() {
         }
       }
 
-      if (!isServerSocket) {
+      if (isServerSocket) {
+        continue;
+      }
+
+      if (fd_v_pid_.count(fd)) {
+        pid_t pid = fd_v_pid_[fd];
+        int client_fd = fd_v_client_[fd];
+        bool keepAlive = fd_v_kp_[client_fd];
+        bool cgiSuccess;
+        int status;
+        waitpid(pid, &status, 0);
+        cgiSuccess = WIFEXITED(status) && WEXITSTATUS(status) == 0;
+
         if (events_[i].events & EPOLLIN) {
           try {
-            // outgoing CGI response if fd is already registered in rfdtopid_
-            if (fd_v_pid_.count(fd)) {
-              //read CGI response
-              char buf[1024];
-              std::string cgiResponse;
-              ssize_t read_bytes;
+            char buf[1024];
+            std::string cgiResponse;
+            ssize_t read_bytes;
 
-              while ((read_bytes = read(fd, buf, 1024)) > 0) {
-                cgiResponse.append(buf, read_bytes);
-              }
-              //TODO: may need to check if the response if empty
-              // convert CGI response to HttpResponse
-              HttpResponse response = CgiMaster::convertCgiResponse(cgiResponse);
-              // delete pid/cgi fd/client fd from fd_v_pid_ and fd_v_client_
-              pid_t pid = fd_v_pid_[fd];
-              int client_fd = fd_v_client_[fd];
-              fd_v_pid_.erase(fd);
-              fd_v_client_.erase(fd);
-              closeConnection(fd);
-
-              int status;
-              waitpid(pid, &status, 0);
-              
-              bool keepAlive = fd_v_kp_[client_fd];
-              fd_v_kp_.erase(client_fd);
-              if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-                registerSendEvent(client_fd, response, keepAlive);
-              } else {
-                HttpResponse error;
-                error.setStatus(INTERNAL_SERVER_ERROR);
-                registerSendEvent(client_fd, error, keepAlive);
-              }
-
+            while ((read_bytes = read(fd, buf, 1024)) > 0) {
+              cgiResponse.append(buf, read_bytes);
             }
-            else
-            {
-              handleClientData(fd);
+
+            HttpResponse response = CgiMaster::convertCgiResponse(cgiResponse);
+
+            fd_v_pid_.erase(fd);
+            fd_v_client_.erase(fd);
+            fd_v_kp_.erase(client_fd);
+            closeConnection(fd);
+
+            if (cgiSuccess) {
+              registerSendEvent(client_fd, response, keepAlive);
+            } else {
+              HttpResponse error;
+              error.setStatus(INTERNAL_SERVER_ERROR);
+              registerSendEvent(client_fd, error, keepAlive);
             }
+
+          } catch (const SysCallFailed &e) {
+          }
+        } else if (events_[i].events & EPOLLERR) {
+          try {
+            HttpResponse error;
+            fd_v_client_.erase(fd);
+            fd_v_pid_.erase(fd);
+            closeConnection(fd);
+
+            error.setStatus(BAD_GATEWAY);
+            std::string res_str = error.encode();
+            send(client_fd, res_str.c_str(), res_str.length(), 0);
+            std::fill(buffer_.begin(), buffer_.end(), 0);
+          } catch (const SysCallFailed &e) {
+          }
+        } else if (events_[i].events & EPOLLHUP) {
+          try {
+            HttpResponse error;
+            fd_v_client_.erase(fd);
+            fd_v_pid_.erase(fd);
+            closeConnection(fd);
+
+            error.setStatus(BAD_GATEWAY);
+            std::string res_str = error.encode();
+            send(client_fd, res_str.c_str(), res_str.length(), 0);
+            std::fill(buffer_.begin(), buffer_.end(), 0);
+          } catch (const SysCallFailed &e) {
+          }
+        } else {
+          continue;
+        }
+
+      } else {
+        if (events_[i].events & EPOLLIN) {
+          try {
+            handleClientData(fd);
           } catch (const SysCallFailed &e) {
           }
         } else if (events_[i].events & EPOLLOUT) {
@@ -160,6 +170,15 @@ void Webserv::run() {
             }
           } catch (const SysCallFailed &e) {
           }
+        } else if (events_[i].events & EPOLLERR) {
+          try {
+            HttpResponse error;
+            error.setStatus(INTERNAL_SERVER_ERROR);
+            sendResponse(fd, error, false);
+          } catch (const SysCallFailed &e) {
+          }
+        } else {
+          continue;
         }
       }
     }

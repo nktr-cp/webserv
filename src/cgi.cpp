@@ -46,7 +46,7 @@ void CgiMaster::identifyInterpreter()
   size_t pos = cgiPath_.find_last_of('.');
   if (pos == std::string::npos)
   {
-    interpreter_ = UNKNOWN;
+    interpreter_ = BIN;
     return;
   }
   std::string extension = cgiPath_.substr(pos + 1);
@@ -105,6 +105,10 @@ std::pair<pid_t, int> CgiMaster::execute()
   {
     return std::make_pair(-1, EACCES); // Return EACCES for permission denied
   }
+  if (interpreter_ == UNKNOWN)
+  {
+    throw http::responseStatusException(BAD_GATEWAY);
+  }
 
   pid_t pid_ = fork();
   if (pid_ == -1)
@@ -153,19 +157,28 @@ void CgiMaster::handleChildProcess()
     // envvar
     char **envp = envToCArray();
 
-    // Use the pre-identified interpreter
+    // Use the pre-identified interpreter or execute directly if BIN
     const char *interpreterPath = NULL;
+    char *argv[3];
+    memset(argv, 0, sizeof(argv));
+
     if (interpreter_ == PYTHON)
     {
-      interpreterPath = "/usr/bin/python3";
+      interpreterPath = PYTHON_INTERPRETER;
+      argv[0] = const_cast<char *>(interpreterPath);
+      argv[1] = const_cast<char *>(fullCgiPath.c_str());
+    }
+    else if (interpreter_ == SH)
+    {
+      interpreterPath = SHELL_INTERPRETER;
+      argv[0] = const_cast<char *>(interpreterPath);
+      argv[1] = const_cast<char *>(fullCgiPath.c_str());
     }
     else
     {
-      interpreterPath = "/bin/sh";
+      interpreterPath = fullCgiPath.c_str();
     }
 
-    char *argv[] = {const_cast<char *>(interpreterPath), const_cast<char *>(fullCgiPath.c_str()), NULL};
-    // write(STDOUT_FILENO, "\n", 1);
     execve(interpreterPath, argv, envp);
     throw SysCallFailed("execve");
   }
@@ -198,7 +211,6 @@ static std::string getTime() {
 HttpResponse CgiMaster::convertCgiResponse(const std::string &cgiResponse)
 {
   HttpResponse response;
-  // std::istringstream iss(cgiResponse.substr(1)); // Skip first newline
   std::istringstream iss(cgiResponse);
   std::string line;
   bool statusSet = false;

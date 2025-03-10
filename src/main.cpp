@@ -14,6 +14,8 @@ bool checkInterpreter(const std::string &interpreter) {
 }
 
 int main(int ac, char **av) {
+  signal(SIGPIPE, SIG_IGN);
+
   if (!checkInterpreter("python") || !checkInterpreter("sh")) {
     std::cerr << VersionInfo::kProgramName << ": " << PYTHON_INTERPRETER << " and " << SHELL_INTERPRETER << " are required to run this program" << std::endl;
     return 1;
