@@ -23,6 +23,7 @@ class Webserv {
 
   std::map<int, pid_t> fd_v_pid_;
   std::map<int, int> fd_v_client_;
+  std::map<int, bool> fd_v_kp_;
 
   void createServerSockets();
   void sendResponse(const int client_fd, const HttpResponse &response, bool keepAlive);

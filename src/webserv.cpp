@@ -137,12 +137,9 @@ void Webserv::run() {
                 response.setStatus(INTERNAL_SERVER_ERROR);
               }
 
-              // note: サーバーから直で送信ではないので
-              // connections_の更新などを行ってはダメで、connections_の削除もinvalid
-              // 単にsendするだけでよい
-              std::string res_str = response.encode();
-              send(client_fd, res_str.c_str(), res_str.length(), 0);
-              std::fill(buffer_.begin(), buffer_.end(), 0);
+              bool keepAlive = fd_v_kp_[client_fd];
+              fd_v_kp_.erase(client_fd);
+              registerSendEvent(client_fd, response, keepAlive);
             }
             else
             {
@@ -158,8 +155,6 @@ void Webserv::run() {
               bool keepAlive = response_pair.second;
               sendResponse(fd, response, keepAlive);
               response_buffers_.erase(fd);
-              epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL);
-              close(fd);
             }
           } catch (const SysCallFailed &e) {
           }
@@ -175,28 +170,22 @@ void Webserv::handleTimeout() {
   for (std::map<int, time_t>::iterator it = connections_.begin();
        it != connections_.end(); it++) {
     // timeout for CGI
-    // const time_t timeout_CGI = 10;
-    if (fd_v_client_.count(it->first)) {
+    if (fd_v_client_.count(it->first) && currentTime > it->second + kTimeoutSec) {
       int child_fd = it->first;
       int client_fd = fd_v_client_[it->first];
       HttpResponse response;
       response.setStatus(GATEWAY_TIMEOUT);
 
-      // ここも同様に、サーバーから直で送信ではないので
-      // connections_の更新などを行ってはダメで、connections_の削除もinvalid
-      std::string res_str = response.encode();
-      send(client_fd, res_str.c_str(), res_str.length(), 0);
-      std::fill(buffer_.begin(), buffer_.end(), 0);
-
+      bool keepAlive = fd_v_kp_[client_fd];
+      registerSendEvent(client_fd, response, keepAlive);
       pid_t pid = fd_v_pid_[child_fd];
       fd_v_pid_.erase(child_fd);
       fd_v_client_.erase(child_fd);
+      fd_v_pid_.erase(child_fd);
       closeConnection(child_fd);
       kill(pid, SIGKILL);
       int status;
       waitpid(pid, &status, 0);
-    } else if (currentTime - it->second > kTimeoutSec) {
-      closeConnection(it->first);
     }
   }
 }
@@ -334,6 +323,7 @@ void Webserv::handleClientData(int client_fd) {
         }
         fd_v_pid_[pid_fd.second] = pid_fd.first;
         fd_v_client_[pid_fd.second] = client_fd;
+        fd_v_kp_[client_fd] = request.keepAlive;
         //register CGI fd to epoll
         connections_[pid_fd.second] = time(NULL);
         struct epoll_event ev;
